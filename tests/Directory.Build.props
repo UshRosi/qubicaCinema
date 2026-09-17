@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    MSBuild stops at the first Directory.Build.props it finds walking up the tree, so the root one must be
+    imported explicitly or test projects would silently lose every shared setting.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <!-- CA1707: test names read as sentences, e.g. Should_reject_a_seat_already_booked. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Shouldly" />
+  </ItemGroup>
+
+</Project>

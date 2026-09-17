@@ -1,0 +1,46 @@
+<Project>
+
+  <!--
+    Settings for an application solution, not for published NuGet packages. SourceLink, symbol packages,
+    package metadata and version automation are deliberately absent: nothing here ships as a package.
+  -->
+
+  <PropertyGroup Label="Identity">
+    <Product>QubicaCinema</Product>
+    <!-- Folder names stay short; assemblies are prefixed centrally so every namespace is QubicaCinema.* -->
+    <AssemblyName>QubicaCinema.$(MSBuildProjectName)</AssemblyName>
+    <RootNamespace>QubicaCinema.$(MSBuildProjectName)</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Language">
+    <NetVersion>net10.0</NetVersion>
+    <TargetFramework>$(NetVersion)</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Quality">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!--
+      latest-recommended, not latest-all: combined with warnings-as-errors, "all" turns hundreds of
+      opinionated rules into build failures and the time goes into fighting analyzers, not into the domain.
+    -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- CS1591: XML documentation is not required on an application that publishes no public API. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build">
+    <Deterministic>true</Deterministic>
+    <IsPackable>false</IsPackable>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

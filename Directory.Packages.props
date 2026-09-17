@@ -1,0 +1,44 @@
+<Project>
+
+  <!--
+    Central package management. Versions are grouped behind variables so that packages released together
+    move together. Packages are added chapter by chapter with `dotnet add package`, which writes the entry
+    here, rather than all at once up front.
+
+    Note: the Aspire AppHost MSBuild SDK version cannot come from here — SDK resolution happens before
+    property evaluation — so it is pinned in global.json and must be kept in sync with $(AspireVersion).
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <AspireVersion>13.5.4</AspireVersion>
+    <MicrosoftVersion>10.0.12</MicrosoftVersion>
+    <OpenTelemetryVersion>1.18.0</OpenTelemetryVersion>
+  </PropertyGroup>
+
+  <ItemGroup Label="Hosting">
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Aspire (AppHost only)">
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.SqlServer" Version="$(AspireVersion)" />
+    <PackageVersion Include="Aspire.Hosting.RabbitMQ" Version="$(AspireVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Observability">
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryVersion)" />
+    <!-- Only ever shipped as a prerelease; see docs/plan/DECISIONS.md. -->
+    <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.18.0-beta.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Diagnostics">
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftVersion)" />
+  </ItemGroup>
+
+</Project>
