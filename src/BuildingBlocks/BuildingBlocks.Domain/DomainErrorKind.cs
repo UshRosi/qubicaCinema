@@ -1,0 +1,24 @@
+namespace QubicaCinema.BuildingBlocks.Domain;
+
+/// <summary>
+/// What kind of rule a <see cref="DomainException"/> broke.
+/// </summary>
+/// <remarks>
+/// The domain says what went wrong in its own words; the API layer alone decides which status code that
+/// becomes. That keeps HTTP out of the model while still giving one exception handler enough to map every
+/// domain failure without a chain of type checks.
+/// </remarks>
+public enum DomainErrorKind
+{
+    /// <summary>The thing being acted on does not exist, or the caller may not know that it does.</summary>
+    NotFound,
+
+    /// <summary>The request is well formed but the current state refuses it, such as a seat already taken.</summary>
+    Conflict,
+
+    /// <summary>The request breaks a rule that can be decided from its own content.</summary>
+    Invalid,
+
+    /// <summary>The caller is known but is not allowed to do this.</summary>
+    Forbidden,
+}

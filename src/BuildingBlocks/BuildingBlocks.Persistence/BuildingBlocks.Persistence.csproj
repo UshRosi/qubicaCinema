@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Persistence abstractions shared by the services and the migration service. No dependencies. -->
+
+</Project>

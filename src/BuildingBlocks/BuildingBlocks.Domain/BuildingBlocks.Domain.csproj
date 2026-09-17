@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The base types every bounded context builds its aggregates on.
+    No package reference and no project reference, on purpose: a domain that depends on nothing can be
+    unit tested with no infrastructure at all, and nothing here can leak a persistence concern into a model.
+  -->
+
+</Project>
