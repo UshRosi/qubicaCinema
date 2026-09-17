@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The only project in the solution that references Aspire. Services and the gateway are plain
+    ASP.NET Core apps configured through the environment variables this host hands them, so the same
+    deployment works anywhere without Aspire.
+  -->
+
+  <Sdk Name="Aspire.AppHost.Sdk" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>qubicacinema-apphost</UserSecretsId>
+    <!--
+      ASPIRE010: the Aspire CLI bundle is deliberately not used. With AspireUseCliBundle=false the SDK
+      restores the dashboard and the orchestrator from NuGet, so running this project directly works
+      on a machine that has no aspire CLI installed: one documented entry point, nothing extra to install.
+    -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The console SDK includes appsettings.json but does not copy it, unlike the web SDK. -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MigrationService/MigrationService.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "AppHost": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "environmentVariables": {
+        // Without these the host runs as Production, and every Development-only behaviour of the shared
+        // defaults — the mapped health endpoints and their detailed body — silently disappears. The AppHost
+        // passes its own environment name on to the projects it starts.
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

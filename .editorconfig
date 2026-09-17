@@ -26,10 +26,12 @@ max_line_length = 120
 # File-scoped namespaces: one less level of indentation in every file. An error, so it is never debated.
 csharp_style_namespace_declarations = file_scoped:error
 
-# var only where the right-hand side already names the type.
+# var only where the right-hand side already names the type. Failing the build on the "elsewhere" case
+# would force an explicit type on every fluent builder call, where the type name is long, generic and less
+# readable than the chain itself, so that one is a suggestion.
 csharp_style_var_for_built_in_types = false:warning
 csharp_style_var_when_type_is_apparent = true:warning
-csharp_style_var_elsewhere = false:warning
+csharp_style_var_elsewhere = false:suggestion
 
 # Braces always: a one-line if without braces is how a second statement silently escapes the condition.
 csharp_prefer_braces = true:warning
@@ -123,4 +125,5 @@ dotnet_diagnostic.CA1819.severity = warning   # properties should not return arr
 dotnet_diagnostic.CA2007.severity = none      # ConfigureAwait: no synchronization context in ASP.NET Core
 dotnet_diagnostic.CA1062.severity = none      # nullable reference types already express the contract
 dotnet_diagnostic.CA1848.severity = none      # LoggerMessage source generators: not worth it at this scale
+dotnet_diagnostic.CA1873.severity = none      # same reason: guarding every log call with IsEnabled is noise
 dotnet_diagnostic.CA1303.severity = none      # no localisation; user-facing text is English by requirement
