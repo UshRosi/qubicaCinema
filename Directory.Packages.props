@@ -18,7 +18,6 @@
 
   <ItemGroup Label="Hosting">
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Aspire (AppHost only)">
@@ -35,10 +34,6 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryVersion)" />
     <!-- Only ever shipped as a prerelease; see docs/plan/DECISIONS.md. -->
     <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.18.0-beta.1" />
-  </ItemGroup>
-
-  <ItemGroup Label="Diagnostics">
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(MicrosoftVersion)" />
   </ItemGroup>
 
 </Project>

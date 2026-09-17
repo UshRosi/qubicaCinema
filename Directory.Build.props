@@ -29,7 +29,9 @@
       opinionated rules into build failures and the time goes into fighting analyzers, not into the domain.
     -->
     <AnalysisLevel>latest-recommended</AnalysisLevel>
-    <!-- CS1591: XML documentation is not required on an application that publishes no public API. -->
+    <!-- Required for IDE0005 (unused usings) to run at build time, not only in the IDE. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: the documentation file exists for the analyzer; missing XML comments are not an error. -->
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 

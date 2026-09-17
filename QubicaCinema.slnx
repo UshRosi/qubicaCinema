@@ -11,4 +11,7 @@
   <Folder Name="/Solution Items/tests/">
     <File Path="tests/Directory.Build.props" />
   </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
+  </Folder>
 </Solution>
