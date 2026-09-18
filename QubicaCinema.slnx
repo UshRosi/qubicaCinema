@@ -11,6 +11,9 @@
   <Folder Name="/Solution Items/tests/">
     <File Path="tests/Directory.Build.props" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/AppHost/AppHost.csproj" />
     <Project Path="src/MigrationService/MigrationService.csproj" />

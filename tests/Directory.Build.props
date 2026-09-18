@@ -11,6 +11,12 @@
     <IsPackable>false</IsPackable>
     <!-- CA1707: test names read as sentences, e.g. Should_reject_a_seat_already_booked. -->
     <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!--
+      xUnit v3 test projects are real executables: they host Microsoft.Testing.Platform themselves rather
+      than being loaded by a runner. That is also why the solution has no Microsoft.NET.Test.Sdk and no
+      VSTest adapter, and why global.json selects the runner for `dotnet test`.
+    -->
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
