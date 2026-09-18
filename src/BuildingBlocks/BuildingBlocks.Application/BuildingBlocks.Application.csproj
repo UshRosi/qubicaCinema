@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The shapes every service's Application layer is written in: the handler contracts, and the small result
+    types a use case hands back. No dependencies, so an Application project that references this still
+    references no framework, no container and no database.
+  -->
+
+</Project>

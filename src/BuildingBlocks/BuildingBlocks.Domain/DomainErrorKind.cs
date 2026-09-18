@@ -21,4 +21,11 @@ public enum DomainErrorKind
 
     /// <summary>The caller is known but is not allowed to do this.</summary>
     Forbidden,
+
+    /// <summary>
+    /// The caller stated what it expected the current state to be, and it was wrong — a stale
+    /// <c>If-Match</c>. Distinct from <see cref="Conflict"/>: retrying is pointless until the caller
+    /// re-reads, which is exactly what 412 tells it to do.
+    /// </summary>
+    PreconditionFailed,
 }

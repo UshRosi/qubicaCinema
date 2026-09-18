@@ -18,6 +18,11 @@
     <ExtensionsVersion>10.10.0</ExtensionsVersion>
   </PropertyGroup>
 
+  <ItemGroup Label="Api">
+    <!-- Apache-2.0, verified in the 12.1.1 nuspec; a different maintainer from MediatR and AutoMapper. -->
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Hosting">
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftVersion)" />
   </ItemGroup>
