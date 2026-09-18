@@ -21,6 +21,15 @@ trim_trailing_whitespace = false
 [*.cs]
 max_line_length = 120
 
+# EF Core writes the files under Migrations, in its own style: block namespaces, a using it does not always
+# need, no documentation comments. Reformatting them by hand would be undone the next time the tooling
+# regenerates the snapshot, and with warnings-as-errors an unformatted one fails the build. Marking the
+# folder as generated exempts it from the style rules while leaving the correctness analyzers in place.
+[**/Migrations/*.cs]
+generated_code = true
+
+[*.cs]
+
 #### Language conventions ####
 
 # File-scoped namespaces: one less level of indentation in every file. An error, so it is never debated.

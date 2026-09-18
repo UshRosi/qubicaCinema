@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Everything that knows about SQL Server: the DbContext, the mappings, the repositories, the read-side
+    projections and the database initializer. It implements the ports declared in Catalog.Application, so
+    the dependency points inwards even though the data flows outwards.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Persistence/BuildingBlocks.Persistence.csproj" />
+    <ProjectReference Include="../Catalog.Application/Catalog.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+  </ItemGroup>
+
+</Project>

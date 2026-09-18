@@ -20,7 +20,9 @@
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/Services/Catalog/">
+    <Project Path="src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
     <Project Path="src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
+    <Project Path="src/Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/BuildingBlocks.Api/BuildingBlocks.Api.csproj" />

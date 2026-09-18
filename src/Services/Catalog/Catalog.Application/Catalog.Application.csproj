@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The use cases: one class per thing the service can be asked to do, and the ports they need.
+    It references the Domain and the application building blocks only — no EF Core, no ASP.NET Core — so a use case can be
+    exercised with substitutes and a FakeTimeProvider, and the dependency arrows all point inwards.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+    <ProjectReference Include="../Catalog.Domain/Catalog.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The abstractions package, not the implementation: this project declares how its use cases are
+      registered without taking a dependency on a particular container or on the hosting stack.
+    -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>
