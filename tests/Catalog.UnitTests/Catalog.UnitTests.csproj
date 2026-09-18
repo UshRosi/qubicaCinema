@@ -6,7 +6,7 @@
   -->
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Services/Catalog/Catalog.Domain/Catalog.Domain.csproj" />
+    <ProjectReference Include="../../src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>
