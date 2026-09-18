@@ -1,3 +1,4 @@
+using QubicaCinema.Catalog.Infrastructure;
 using QubicaCinema.MigrationService;
 using QubicaCinema.ServiceDefaults;
 
@@ -12,8 +13,11 @@ builder.Services.AddOptions<SeedOptions>()
     // Fail while starting, not halfway through a migration.
     .ValidateOnStart();
 
-// Each service registers its own IDatabaseInitializer here from chapter 1 onwards. Until then the worker
-// finds none and exits successfully, which is the correct behaviour for an empty solution.
+// One line per service whose schema this process owns. Each Add*Infrastructure registers that service's
+// IDatabaseInitializer, and the worker runs every one it finds without knowing what any of them are.
+builder.Services.AddCatalogInfrastructure(builder.Configuration.RequireConnectionString(
+    CatalogInfrastructureExtensions.DatabaseName));
+
 builder.Services.AddHostedService<DatabaseMigrationWorker>();
 
 var host = builder.Build();

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using QubicaCinema.BuildingBlocks.Domain;
+using QubicaCinema.BuildingBlocks.Persistence;
 using QubicaCinema.Catalog.Application.Abstractions.Queries;
 using QubicaCinema.Catalog.Application.Abstractions.Repositories;
 using QubicaCinema.Catalog.Infrastructure.Persistence;
@@ -51,6 +53,13 @@ public static class CatalogInfrastructureExtensions
         services.AddScoped<IMovieQueries, MovieQueries>();
         services.AddScoped<IAuditoriumQueries, AuditoriumQueries>();
         services.AddScoped<IScreeningQueries, ScreeningQueries>();
+
+        // The migration service resolves this without knowing anything about Catalog.
+        services.AddScoped<IDatabaseInitializer, CatalogDatabaseInitializer>();
+
+        // The seed needs a clock. TryAdd, because the API registers the same one from Application and
+        // whichever call comes first must win without the other overwriting it.
+        services.TryAddSingleton(TimeProvider.System);
 
         // Readiness, not liveness: a service whose database is unreachable cannot serve requests, but it
         // should not be restarted for it.

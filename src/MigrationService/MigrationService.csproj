@@ -11,7 +11,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The worker SDK includes appsettings.json but does not copy it, unlike the web SDK. -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../BuildingBlocks/BuildingBlocks.Persistence/BuildingBlocks.Persistence.csproj" />
+    <!--
+      One reference per service whose schema this process owns. It reaches Infrastructure only: the
+      initializer is resolved through IDatabaseInitializer, so this project never names a Catalog type.
+    -->
+    <ProjectReference Include="../Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
     <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
 
