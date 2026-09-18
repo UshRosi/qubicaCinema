@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Catalog model: movies, auditoriums with their seats, and screenings.
+    Its only reference is BuildingBlocks.Domain, so every rule in here can be tested without a database,
+    a web host or a container. Anything that needs one of those belongs in Infrastructure.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Domain/BuildingBlocks.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
