@@ -1,3 +1,4 @@
+
 using QubicaCinema.Catalog.Domain.ValueObjects;
 
 namespace QubicaCinema.Catalog.Domain.Screenings;

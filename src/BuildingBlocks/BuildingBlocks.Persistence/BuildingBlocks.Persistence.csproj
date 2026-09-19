@@ -1,5 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Persistence abstractions shared by the services and the migration service. No dependencies. -->
+  <!--
+    Persistence shared by the services and the migration service: the database-initializer abstraction and
+    the EF Core implementation of the idempotency store, which is the same code whatever a service stores.
+    It knows EF Core and SQL Server, and no bounded context.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+  </ItemGroup>
 
 </Project>

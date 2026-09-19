@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Booking model: bookings and their items, the local copy of the screenings and seats they refer to,
+    and the rules for choosing seats. Its only reference is BuildingBlocks.Domain, so every rule in here is
+    tested without a database, a web host or a container.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Domain/BuildingBlocks.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

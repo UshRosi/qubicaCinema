@@ -1,0 +1,13 @@
+{
+  // Used when this service is started on its own. Under the AppHost the orchestrator assigns the ports.
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5102",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

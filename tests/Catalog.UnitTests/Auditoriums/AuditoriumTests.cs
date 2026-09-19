@@ -1,6 +1,6 @@
+using QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 using QubicaCinema.Catalog.Domain.Auditoriums;
 using QubicaCinema.Catalog.Domain.Exceptions;
-using QubicaCinema.Catalog.Domain.ValueObjects;
 
 namespace QubicaCinema.Catalog.UnitTests.Auditoriums;
 

@@ -22,6 +22,9 @@ public static class ProblemTypes
     /// <summary>The request breaks a rule decidable from its own content.</summary>
     public const string Invalid = $"{Base}invalid-request";
 
+    /// <summary>The request could not even be read: malformed JSON, or a shape the service does not know.</summary>
+    public const string MalformedRequest = $"{Base}malformed-request";
+
     /// <summary>The request did not pass validation.</summary>
     public const string ValidationFailed = $"{Base}validation-failed";
 
@@ -33,6 +36,15 @@ public static class ProblemTypes
 
     /// <summary>The request needs an <c>If-Match</c> and did not carry one.</summary>
     public const string PreconditionRequired = $"{Base}precondition-required";
+
+    /// <summary>The request must carry a well-formed <c>Idempotency-Key</c> header and did not.</summary>
+    public const string IdempotencyKeyRequired = $"{Base}idempotency-key-required";
+
+    /// <summary>The <c>Idempotency-Key</c> was already used for a different request.</summary>
+    public const string IdempotencyKeyReuse = $"{Base}idempotency-key-reuse";
+
+    /// <summary>A request with the same <c>Idempotency-Key</c> is still being processed.</summary>
+    public const string RequestInFlight = $"{Base}request-in-flight";
 
     /// <summary>Something went wrong that the caller cannot act on.</summary>
     public const string Unexpected = $"{Base}unexpected-error";

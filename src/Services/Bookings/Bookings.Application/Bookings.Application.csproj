@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Booking use cases and the ports they need. It references the Domain and the application building
+    blocks only — no EF Core, no ASP.NET Core — so every use case can be exercised with substitutes and a
+    FakeTimeProvider.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+    <ProjectReference Include="../Bookings.Domain/Bookings.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>

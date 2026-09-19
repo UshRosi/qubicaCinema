@@ -1,3 +1,4 @@
+using QubicaCinema.Bookings.Infrastructure;
 using QubicaCinema.Catalog.Infrastructure;
 using QubicaCinema.MigrationService;
 using QubicaCinema.ServiceDefaults;
@@ -17,6 +18,8 @@ builder.Services.AddOptions<SeedOptions>()
 // IDatabaseInitializer, and the worker runs every one it finds without knowing what any of them are.
 builder.Services.AddCatalogInfrastructure(builder.Configuration.RequireConnectionString(
     CatalogInfrastructureExtensions.DatabaseName));
+builder.Services.AddBookingsInfrastructure(builder.Configuration.RequireConnectionString(
+    BookingsInfrastructureExtensions.DatabaseName));
 
 builder.Services.AddHostedService<DatabaseMigrationWorker>();
 

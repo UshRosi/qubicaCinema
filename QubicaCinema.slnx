@@ -12,12 +12,20 @@
     <File Path="tests/Directory.Build.props" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/BuildingBlocks.UnitTests/BuildingBlocks.UnitTests.csproj" />
+    <Project Path="tests/Bookings.UnitTests/Bookings.UnitTests.csproj" />
     <Project Path="tests/Catalog.UnitTests/Catalog.UnitTests.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AppHost/AppHost.csproj" />
     <Project Path="src/MigrationService/MigrationService.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Bookings/">
+    <Project Path="src/Services/Bookings/Bookings.Api/Bookings.Api.csproj" />
+    <Project Path="src/Services/Bookings/Bookings.Application/Bookings.Application.csproj" />
+    <Project Path="src/Services/Bookings/Bookings.Domain/Bookings.Domain.csproj" />
+    <Project Path="src/Services/Bookings/Bookings.Infrastructure/Bookings.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Services/Catalog/">
     <Project Path="src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" />

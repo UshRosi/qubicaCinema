@@ -1,4 +1,5 @@
 using QubicaCinema.BuildingBlocks.Application.Handlers;
+using QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 using QubicaCinema.BuildingBlocks.Domain;
 using QubicaCinema.Catalog.Application.Abstractions.Repositories;
 using QubicaCinema.Catalog.Domain.Exceptions;

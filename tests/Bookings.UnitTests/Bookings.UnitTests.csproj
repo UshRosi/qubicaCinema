@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Booking's unit tests: the domain without mocks, and the use cases with substitutes for their ports.
+    No container and no web host — the double-booking guarantee needs a real SQL Server and is tested in
+    the integration tier (chapter 7).
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Services/Bookings/Bookings.Application/Bookings.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+</Project>

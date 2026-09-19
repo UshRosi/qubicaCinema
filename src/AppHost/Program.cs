@@ -53,4 +53,9 @@ builder.AddProject<Projects.Catalog_Api>("catalog")
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health");
 
+builder.AddProject<Projects.Bookings_Api>("booking")
+    .WithReference(bookingDb)
+    .WaitForCompletion(migrations)
+    .WithHttpHealthCheck("/health");
+
 builder.Build().Run();
