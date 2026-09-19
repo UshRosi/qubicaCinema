@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The HTTP face of the Catalog service: endpoint modules, request contracts and their validators.
+    A plain ASP.NET Core app with no Aspire package of any kind — it is configured through ordinary keys
+    (ConnectionStrings__catalogdb), so the same build runs anywhere those are set.
+  -->
+
+  <PropertyGroup>
+    <UserSecretsId>qubicacinema-catalog</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The Web SDK's implicit usings stop short of these two, and every endpoint module needs both: the
+      typed results that make a handler's return type its documented contract, and [FromHeader], which
+      minimal APIs still take from the MVC namespace.
+    -->
+    <Using Include="Microsoft.AspNetCore.Http.HttpResults" />
+    <Using Include="Microsoft.AspNetCore.Mvc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Design-time only, and here rather than in Infrastructure because this is the startup project the EF
+      tooling runs (the startup-project option of dotnet ef points here): it builds this host and
+      reads its configuration, so migrations use exactly the registration and connection string the service
+      does, with nothing hard-coded for the tooling.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Api/BuildingBlocks.Api.csproj" />
+    <ProjectReference Include="../../../ServiceDefaults/ServiceDefaults.csproj" />
+    <ProjectReference Include="../Catalog.Application/Catalog.Application.csproj" />
+    <ProjectReference Include="../Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -14,9 +14,24 @@
     <AspireVersion>13.5.4</AspireVersion>
     <MicrosoftVersion>10.0.12</MicrosoftVersion>
     <OpenTelemetryVersion>1.18.0</OpenTelemetryVersion>
+    <!-- dotnet/extensions ships on its own cadence; the packages from that repo really are on 10.10.x. -->
+    <ExtensionsVersion>10.10.0</ExtensionsVersion>
   </PropertyGroup>
 
+  <ItemGroup Label="Persistence">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(MicrosoftVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(MicrosoftVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Api">
+    <!-- Apache-2.0, verified in the 12.1.1 nuspec; a different maintainer from MediatR and AutoMapper. -->
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Hosting">
+    <!-- Abstractions only: an Application project registers its use cases without referencing a container. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftVersion)" />
   </ItemGroup>
 
@@ -34,6 +49,17 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryVersion)" />
     <!-- Only ever shipped as a prerelease; see docs/plan/DECISIONS.md. -->
     <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.18.0-beta.1" />
+  </ItemGroup>
+
+  <!--
+    No Microsoft.NET.Test.Sdk and no VSTest adapter: xunit.v3 brings Microsoft.Testing.Platform, which is
+    the only runner the .NET 10 SDK supports for it. The runner is selected in dotnet.config.
+  -->
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(ExtensionsVersion)" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 
 </Project>

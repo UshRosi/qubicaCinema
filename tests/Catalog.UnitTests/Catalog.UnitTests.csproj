@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Domain tests only: no container, no web host, no ServiceCollection. If a test in here ever needs one of
+    those, a persistence or hosting concern has leaked into the model and that is the real defect.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+</Project>

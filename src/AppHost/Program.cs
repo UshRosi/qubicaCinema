@@ -36,7 +36,7 @@ builder.AddRabbitMQ("rabbitmq")
 
 // Schema and seed data are applied by one process that runs to completion. Every service will wait for it,
 // so no service ever starts against a half-built schema.
-builder.AddProject<Projects.MigrationService>("migrations")
+var migrations = builder.AddProject<Projects.MigrationService>("migrations")
     .WithReference(identityDb).WaitFor(identityDb)
     .WithReference(catalogDb).WaitFor(catalogDb)
     .WithReference(bookingDb).WaitFor(bookingDb)
@@ -44,5 +44,13 @@ builder.AddProject<Projects.MigrationService>("migrations")
     // Production and quietly lose the Development-only behaviour of the shared telemetry defaults.
     .WithEnvironment("DOTNET_ENVIRONMENT", builder.Environment.EnvironmentName)
     .WithEnvironment("Seed__Enabled", options.SeedData.ToString());
+
+// WaitForCompletion, not WaitFor: the migration service is a task that ends, and the API must not start
+// against a schema that is still being applied. A non-zero exit code from it stops the API from starting
+// at all, which is the behaviour wanted — a service on a half-built schema fails in far stranger ways.
+builder.AddProject<Projects.Catalog_Api>("catalog")
+    .WithReference(catalogDb)
+    .WaitForCompletion(migrations)
+    .WithHttpHealthCheck("/health");
 
 builder.Build().Run();
