@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Everything in Booking that knows about SQL Server: the DbContext, the mappings (the filtered unique index
+    that prevents double booking among them), the idempotency store, the repositories, the read side and
+    the database initializer. It implements the ports declared in Bookings.Application.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Persistence/BuildingBlocks.Persistence.csproj" />
+    <ProjectReference Include="../Bookings.Application/Bookings.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+  </ItemGroup>
+
+</Project>
