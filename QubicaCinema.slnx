@@ -20,6 +20,12 @@
     <Project Path="src/MigrationService/MigrationService.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Bookings/">
+    <Project Path="src/Services/Bookings/Bookings.Api/Bookings.Api.csproj" />
+    <Project Path="src/Services/Bookings/Bookings.Application/Bookings.Application.csproj" />
+    <Project Path="src/Services/Bookings/Bookings.Domain/Bookings.Domain.csproj" />
+    <Project Path="src/Services/Bookings/Bookings.Infrastructure/Bookings.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Catalog/">
     <Project Path="src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
     <Project Path="src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />

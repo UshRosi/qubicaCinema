@@ -21,6 +21,7 @@
       One reference per service whose schema this process owns. It reaches Infrastructure only: the
       initializer is resolved through IDatabaseInitializer, so this project never names a Catalog type.
     -->
+    <ProjectReference Include="../Services/Bookings/Bookings.Infrastructure/Bookings.Infrastructure.csproj" />
     <ProjectReference Include="../Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
     <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
