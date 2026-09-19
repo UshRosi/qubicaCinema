@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Time.Testing;
+using QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 using QubicaCinema.Catalog.Domain.Exceptions;
 using QubicaCinema.Catalog.Domain.Screenings;
-using QubicaCinema.Catalog.Domain.ValueObjects;
 
 namespace QubicaCinema.Catalog.UnitTests.Screenings;
 

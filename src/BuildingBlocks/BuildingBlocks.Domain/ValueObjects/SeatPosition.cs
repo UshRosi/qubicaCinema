@@ -1,15 +1,18 @@
 using System.Globalization;
-using QubicaCinema.Catalog.Domain.Exceptions;
 
-namespace QubicaCinema.Catalog.Domain.ValueObjects;
+namespace QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 
 /// <summary>
 /// Where a seat is: a row letter and a number within that row, as printed on a ticket.
 /// </summary>
 /// <remarks>
+/// Shared by Catalog, which lays out the grid of an auditorium, and Booking, which seats a party together
+/// — so the two cannot disagree about what <c>C7</c> means or about which rows an auditorium may have.
+/// <para>
 /// A position is not an identity. Two auditoriums both have an A1, and comparing seats by position across
 /// auditoriums is meaningless — that is what the seat's id is for. Equality here is structural, which is
 /// exactly what is wanted when checking that a booking request names a seat the auditorium really has.
+/// </para>
 /// </remarks>
 public sealed record SeatPosition
 {
@@ -25,7 +28,7 @@ public sealed record SeatPosition
         Number = number;
     }
 
-    /// <summary>The row, a single upper-case letter.</summary>
+    /// <summary>The row, a single upper-case letter; A is nearest the screen.</summary>
     public string Row { get; }
 
     /// <summary>The seat number within the row, starting at one.</summary>
@@ -52,8 +55,14 @@ public sealed record SeatPosition
     /// <summary>
     /// Creates the position of the n-th seat in the n-th row of a generated grid, both counted from zero.
     /// </summary>
-    internal static SeatPosition FromGridIndex(int rowIndex, int numberIndex) =>
+    public static SeatPosition FromGridIndex(int rowIndex, int numberIndex) =>
         Of(((char)('A' + rowIndex)).ToString(), numberIndex + 1);
+
+    /// <summary>
+    /// Whether the two seats are side by side: same row, consecutive numbers. Seats either side of an aisle
+    /// would need a richer layout to tell apart; a rectangular grid has no aisles.
+    /// </summary>
+    public bool IsNextTo(SeatPosition other) => Row == other.Row && Math.Abs(Number - other.Number) == 1;
 
     /// <summary>Renders the position the way a ticket does, for example <c>C7</c>.</summary>
     public override string ToString() => string.Create(CultureInfo.InvariantCulture, $"{Row}{Number}");

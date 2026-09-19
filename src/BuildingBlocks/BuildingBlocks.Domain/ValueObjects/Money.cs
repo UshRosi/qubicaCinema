@@ -1,14 +1,19 @@
 using System.Globalization;
-using QubicaCinema.Catalog.Domain.Exceptions;
 
-namespace QubicaCinema.Catalog.Domain.ValueObjects;
+namespace QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 
 /// <summary>
 /// An amount of money in one currency.
 /// </summary>
 /// <remarks>
-/// A record, so structural equality, <c>GetHashCode</c> and <c>ToString</c> come for free; the constructor is
-/// private, so the only way in is <see cref="Of"/> and no instance can exist that breaks the rules below.
+/// A shared kernel: Catalog prices a seat with it and Booking totals a purchase with it, and the two must
+/// agree on what an amount of money is down to the rounding. It is deliberately the only kind of type
+/// shared between the services — no entity, no aggregate and no rule about cinemas lives here — so the
+/// coupling is to a stable definition, not to another service's model.
+/// <para>
+/// A record, so structural equality, <c>GetHashCode</c> and <c>ToString</c> come for free; the constructor
+/// is private, so the only way in is <see cref="Of"/> and no instance can exist that breaks the rules below.
+/// </para>
 /// <para>
 /// The amount is a <see cref="decimal"/> rounded to two places rather than an integer count of minor units.
 /// Decimal is exact for the arithmetic done here and reads naturally in JSON, but it does assume every
@@ -47,10 +52,12 @@ public sealed record Money
                 $"'{currency}' is not an ISO-4217 currency code; three letters were expected, such as EUR.");
         }
 
-        return new Money(
-            Math.Round(amount, Decimals, MidpointRounding.ToEven),
-            currency.ToUpperInvariant());
+        return new Money(Math.Round(amount, Decimals, MidpointRounding.ToEven), currency.ToUpperInvariant());
     }
+
+    /// <summary>Nothing, in the given currency: where a sum starts.</summary>
+    /// <exception cref="InvalidMoneyException">The currency code is malformed.</exception>
+    public static Money Zero(string currency) => Of(0m, currency);
 
     /// <summary>Adds two amounts of the same currency.</summary>
     /// <exception cref="CurrencyMismatchException">The currencies differ.</exception>
@@ -74,8 +81,7 @@ public sealed record Money
     }
 
     /// <summary>Renders the amount the way an invariant culture would, for logs and traces.</summary>
-    public override string ToString() =>
-        string.Create(CultureInfo.InvariantCulture, $"{Amount:0.00} {Currency}");
+    public override string ToString() => string.Create(CultureInfo.InvariantCulture, $"{Amount:0.00} {Currency}");
 
     private void EnsureSameCurrency(Money other)
     {

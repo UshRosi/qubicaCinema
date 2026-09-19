@@ -1,7 +1,7 @@
-using QubicaCinema.Catalog.Domain.Exceptions;
-using QubicaCinema.Catalog.Domain.ValueObjects;
+using QubicaCinema.BuildingBlocks.Domain;
+using QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 
-namespace QubicaCinema.Catalog.UnitTests.ValueObjects;
+namespace QubicaCinema.BuildingBlocks.UnitTests.ValueObjects;
 
 public sealed class SeatPositionTests
 {

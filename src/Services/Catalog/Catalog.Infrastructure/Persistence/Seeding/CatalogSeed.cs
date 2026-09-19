@@ -1,7 +1,7 @@
+using QubicaCinema.BuildingBlocks.Domain.ValueObjects;
 using QubicaCinema.Catalog.Domain.Auditoriums;
 using QubicaCinema.Catalog.Domain.Movies;
 using QubicaCinema.Catalog.Domain.Screenings;
-using QubicaCinema.Catalog.Domain.ValueObjects;
 using QubicaCinema.Catalog.Infrastructure.Extensions;
 
 namespace QubicaCinema.Catalog.Infrastructure.Persistence.Seeding;
