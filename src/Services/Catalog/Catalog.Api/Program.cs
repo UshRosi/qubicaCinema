@@ -38,6 +38,8 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // One exception handler for the whole service; no endpoint and no use case contains a try/catch.
 builder.Services.AddProblemDetails();
+// Exception handlers run in registration order; each declines what it does not recognise.
+builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
 builder.Services.AddCatalogApplication();

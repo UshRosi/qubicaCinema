@@ -22,6 +22,9 @@ public static class ProblemTypes
     /// <summary>The request breaks a rule decidable from its own content.</summary>
     public const string Invalid = $"{Base}invalid-request";
 
+    /// <summary>The request could not even be read: malformed JSON, or a shape the service does not know.</summary>
+    public const string MalformedRequest = $"{Base}malformed-request";
+
     /// <summary>The request did not pass validation.</summary>
     public const string ValidationFailed = $"{Base}validation-failed";
 
