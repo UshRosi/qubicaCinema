@@ -3,8 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using QubicaCinema.BuildingBlocks.Application.Idempotency;
 using QubicaCinema.BuildingBlocks.Domain;
+using QubicaCinema.BuildingBlocks.EventBus;
 using QubicaCinema.BuildingBlocks.Persistence;
 using QubicaCinema.BuildingBlocks.Persistence.Idempotency;
+using QubicaCinema.BuildingBlocks.Persistence.Inbox;
 using QubicaCinema.Bookings.Application.Abstractions.Queries;
 using QubicaCinema.Bookings.Application.Abstractions.Repositories;
 using QubicaCinema.Bookings.Infrastructure.Persistence;
@@ -34,8 +36,12 @@ public static class BookingsInfrastructureExtensions
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IScreeningRepository, ScreeningRepository>();
         services.AddScoped<ISeatMapRepository, SeatMapRepository>();
+        services.AddScoped<ISeatRepository, SeatRepository>();
         services.AddScoped<IBookingQueries, BookingQueries>();
         services.AddScoped<IIdempotencyStore, EfIdempotencyStore<BookingDbContext>>();
+
+        // The consumer resolves this to skip an event it has already applied.
+        services.AddScoped<IInbox, EfInbox<BookingDbContext>>();
 
         services.AddScoped<IDatabaseInitializer, BookingDatabaseInitializer>();
 

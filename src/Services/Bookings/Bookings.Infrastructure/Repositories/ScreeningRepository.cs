@@ -9,6 +9,13 @@ namespace QubicaCinema.Bookings.Infrastructure.Repositories;
 internal sealed class ScreeningRepository(BookingDbContext context) : IScreeningRepository
 {
     /// <inheritdoc />
+    public Task<Screening?> FindAsync(Guid id, CancellationToken cancellationToken) =>
+        context.Screenings.FirstOrDefaultAsync(screening => screening.Id == id, cancellationToken);
+
+    /// <inheritdoc />
+    public void Add(Screening screening) => context.Screenings.Add(screening);
+
+    /// <inheritdoc />
     /// <remarks>Without tracking: the booking use cases read screenings to decide, and never change them.</remarks>
     public async Task<IReadOnlyCollection<Screening>> GetManyAsync(
         IReadOnlyCollection<Guid> ids,
