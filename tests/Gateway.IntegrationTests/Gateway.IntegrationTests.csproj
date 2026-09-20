@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The gateway with its two services replaced by a recording stub: the real routing table, the real
+    middleware order, the real rate limiter, and no container. What is asserted is which service each path
+    reaches and what crosses the hop, which is exactly what can break silently when a route is edited.
+    Web SDK because WebApplicationFactory needs the shared framework of the app it hosts.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Gateway/Gateway.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+</Project>
