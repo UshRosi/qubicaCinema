@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The single entry point a client talks to. A plain ASP.NET Core app with no Aspire package of any kind:
+    routes and policies are data in appsettings.json, and the only thing the environment supplies is where
+    each service listens (ReverseProxy__Clusters__*__Destinations__primary__Address). Running it outside
+    Aspire means setting two variables, not installing an orchestrator.
+  -->
+
+  <PropertyGroup>
+    <UserSecretsId>qubicacinema-gateway</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Referenced only for ProblemTypes: the stable RFC 9457 type URIs are a published contract and are
+      declared once for the whole solution. A second copy here is how two vocabularies start.
+    -->
+    <ProjectReference Include="../BuildingBlocks/BuildingBlocks.Api/BuildingBlocks.Api.csproj" />
+    <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The gateway's types are internal: nothing else references it, so nothing else needs to see them. The
+      tests are the one exception, and they reach the rate-limiting options and the policy names directly
+      rather than only through HTTP.
+    -->
+    <InternalsVisibleTo Include="QubicaCinema.Gateway.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" />
+  </ItemGroup>
+
+</Project>

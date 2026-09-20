@@ -29,6 +29,15 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
   </ItemGroup>
 
+  <ItemGroup Label="Gateway">
+    <!--
+      MIT, verified in the 2.3.0 nuspec. Targets net8.0 and runs unchanged on net10.0. Deliberately not
+      paired with Microsoft.Extensions.ServiceDiscovery.Yarp: YARP builds its own HttpMessageInvoker per
+      cluster, so service discovery would be dead code that looks like protection.
+    -->
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Messaging">
     <!-- Apache-2.0 OR MPL-2.0, verified in the 7.2.1 nuspec. The official client; no framework on top of it. -->
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.1" />
@@ -62,6 +71,8 @@
     the only runner the .NET 10 SDK supports for it. The runner is selected in dotnet.config.
   -->
   <ItemGroup Label="Tests">
+    <!-- MIT, part of ASP.NET Core: hosts the gateway in memory so its routing can be tested without a container. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(MicrosoftVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(ExtensionsVersion)" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />

@@ -1,0 +1,15 @@
+{
+  // Used when the gateway is started on its own, in front of services that were also started by hand on
+  // the ports of their own launch profiles. Under the AppHost none of this applies: the orchestrator
+  // assigns the port and injects the destination addresses.
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5100",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

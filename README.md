@@ -15,7 +15,7 @@ The solution is built chapter by chapter, and each chapter ends with commits tha
 | 1 | Catalog: movies, auditoriums, screenings | done |
 | 2 | Booking: seat allocation, availability, cancellation, idempotency | done |
 | 3 | Event-driven integration over RabbitMQ: Catalog outbox, Booking inbox | done |
-| 4 | YARP gateway | planned |
+| 4 | YARP gateway: routing, rate limiting, one error shape | done |
 | 5 | Identity and JWT | planned |
 | 6–9 | API documentation, tests, CI, final polish | planned |
 
@@ -42,21 +42,29 @@ The dashboard URL and its login token are printed in the console. The AppHost st
 three databases, RabbitMQ with its management UI, and runs the migration service to completion before any
 service starts.
 
-### Trying the Catalog API
+### Trying the API
 
-Once the `catalog` resource is healthy in the dashboard it answers on `http://localhost:5101`. The migration
-service seeds three auditoriums, six films and a week of screenings, laid out relative to today so that they
-are always in the future.
+Everything is reached through the gateway. Aspire assigns its port on every run, so read the `gateway`
+endpoint from the dashboard and put it in a variable. The migration service seeds three auditoriums, six
+films and a week of screenings, laid out relative to today so that they are always in the future.
 
 ```bash
-curl "http://localhost:5101/api/v1/screenings?pageSize=5"
-curl "http://localhost:5101/api/v1/screenings?sort=CheapestFirst&from=2030-01-01T00:00:00Z"
-curl -i "http://localhost:5101/api/v1/movies/{id}"                  # note the ETag header
-curl -i -X PUT "http://localhost:5101/api/v1/movies/{id}" \
+GW=http://localhost:<the gateway port from the dashboard>
+
+curl "$GW/api/v1/screenings?pageSize=5"
+curl "$GW/api/v1/screenings?sort=CheapestFirst&from=2030-01-01T00:00:00Z"
+curl -i "$GW/api/v1/movies/{id}"                                    # note the ETag header
+curl -i -X PUT "$GW/api/v1/movies/{id}" \
      -H 'Content-Type: application/json' -H 'If-Match: "<etag>"' \
      -d '{"title":"…","description":"…","durationMinutes":120,"genre":"Drama","ageRating":"Teen"}'
-curl -i -X POST "http://localhost:5101/api/v1/screenings/{id}/cancellation" \
+curl -i -X POST "$GW/api/v1/screenings/{id}/cancellation" \
      -H 'Content-Type: application/json' -d '{"reason":"projector failure"}'
+
+# The seat map is Booking's, the rest of /screenings is Catalog's; the client cannot tell.
+curl -i "$GW/api/v1/screenings/{id}/seats"                          # Cache-Control: no-store
+curl -i -X POST "$GW/api/v1/bookings" \
+     -H 'Content-Type: application/json' -H "Idempotency-Key: $(uuidgen)" \
+     -d '{"items":[{"screeningId":"{id}","selection":{"mode":"quantity","quantity":2}}]}'
 ```
 
 Migrations are added through the API project, so the tooling builds the real host and reads the same
@@ -69,8 +77,9 @@ dotnet ef migrations add <Name> \
   --startup-project src/Services/Catalog/Catalog.Api
 ```
 
-The endpoints are open for now; administrator-only writes arrive with authentication in chapter 5, and the
-gateway in chapter 4 becomes the single entry point.
+The endpoints are open for now; administrator-only writes arrive with authentication in chapter 5. The
+services also listen on ports of their own, which is what their launch profiles are for when one is started
+by hand; under the AppHost, treat the gateway as the only door.
 
 Local development behaviour is configurable through the `Cinema` section — for example
 `Cinema__UseVolumes=true` to keep the SQL Server data between runs, or `Cinema__PersistentContainers=true`
@@ -104,6 +113,7 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | Project | Role |
 |---|---|
 | `src/AppHost` | The only project that references Aspire. Declares SQL Server, RabbitMQ and the migration service |
+| `src/Gateway` | The YARP reverse proxy: the routing table is `appsettings.json`, and the code is the rate limiter and the mapping of gateway errors to ProblemDetails. No Aspire package |
 | `src/ServiceDefaults` | OpenTelemetry and health-check plumbing shared by every process. No Aspire package |
 | `src/MigrationService` | Applies every schema once and exits; a non-zero exit code stops the services from starting |
 | `src/BuildingBlocks/BuildingBlocks.Domain` | `Entity`, `AggregateRoot`, `IDomainEvent`, `IUnitOfWork`, `DomainException`. No dependencies |
@@ -119,6 +129,7 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | `src/Services/Catalog/Catalog.Api` | `/api/v1/movies`, `/auditoriums`, `/screenings`, and the request validators |
 | `src/Services/Bookings/Bookings.Application` | Booking's use cases, and one handler per Catalog event that keeps its screenings and seats current |
 | `tests/Catalog.UnitTests` | The domain rules and the use cases, with no container and no database |
+| `tests/Gateway.IntegrationTests` | The real gateway hosted in memory with both services replaced by a recording stub: routing, headers, error shape and limits, with no container |
 | `tests/Bookings.UnitTests`, `tests/BuildingBlocks.UnitTests` | Booking's domain and handlers; the shared kernel, the event contracts and the outbox |
 
 Inside a service the dependencies point inwards: `Api → Application → Domain`, and `Infrastructure`
@@ -159,10 +170,57 @@ never run: the gateway builds its own message invoker per cluster. Blanket retri
 could also double-book, so resilience goes where it is real — gateway timeouts and an outbox publisher that
 is idempotent by construction.
 
+**The gateway's health is its own, and a dead service degrades one route.** `/health` on the gateway answers
+for the gateway. If a stopped Catalog made it unhealthy, a load balancer would pull the gateway out of
+rotation and take login and booking reads down with it. Downstream health is YARP's own active check, per
+cluster: after three failed probes a service has no healthy destination and only its routes answer `503`,
+with an `upstream-unavailable` problem. YARP's default, `HealthyOrPanic`, would forward to a dead
+destination anyway when it is the only one, so the clusters pin `HealthyAndUnknown`. Without that the health
+check would be decorative. Nothing proxies `/health` or `/alive`, because every route lives under `/api/v1`
+and there is no catch-all.
+
+**A path split across two services is resolved by specificity, not by `Order`.** `/api/v1/screenings/{id}/seats`
+belongs to Booking and the rest of `/screenings` to Catalog. ASP.NET Core already prefers the literal
+`seats` segment over a catch-all, so no route carries an `Order`. Setting one would be worse than redundant:
+`Order` is compared before specificity across every route, so an `Order` added later for an unrelated
+reason could let a catch-all swallow the seat map. A test pins the split instead of forcing it.
+
+**The gateway rewrites nothing.** There are no transforms: the path, the request headers (`If-Match`,
+`Idempotency-Key`, `X-User-Id`) and the response headers (`ETag`, `Cache-Control`, `Location`) cross
+untouched. That is why the absolute `Location: /api/v1/bookings/{id}` a service returns is still correct
+at the gateway. A test asserts it, so adding a transform that drops one fails the build.
+
+**One error shape, from whoever answers.** A status the gateway produces itself (`404` for an unrouted path,
+`429`, `502`, `503`, `504`) is turned into the same RFC 9457 ProblemDetails, with `type` URIs from the same
+registry the services use. A service's own error is passed through untouched. The three upstream failures
+have three types because the advice differs: `502`, the service answered badly, so do not retry blindly;
+`503`, nothing healthy is listening, so retry later; `504`, it was too slow and may have committed anyway,
+which for `POST /bookings` is exactly what the `Idempotency-Key` is for.
+
+**Rate limiting is per client, fixed window, and stricter where it costs something.** A global limiter
+covers every route, so one added later is protected before anyone remembers to name a policy on it; creating
+a booking has a smaller budget of its own, because a hot loop there consumes seats. A fixed window because
+it is the only algorithm that hands back an exact `Retry-After`; the price is a burst of up to twice the
+limit across a window edge. The client is the remote address today, because the only identity header is a
+stand-in any caller can set, and the token's subject replaces it in chapter 5. Startup refuses a booking
+budget that is not smaller than the global one, since that policy would never refuse anything.
+
+**No blanket retries at the gateway.** An automatic retry of `POST /bookings` can double-book unless the
+idempotency key is honoured, so retries belong to the client, which knows whether it may repeat a request.
+The gateway's resilience is a timeout per route, an idle timeout per cluster and the health checks above.
+
+**The AppHost hands the gateway two strings, and nothing else.** Each service's address goes in as
+`ReverseProxy__Clusters__<id>__Destinations__primary__Address`, the key the gateway's own `appsettings.json`
+declares, rather than through `WithReference`, which would inject service-discovery keys nothing reads.
+Running the gateway without Aspire means setting those two variables. The gateway also does not wait for the
+services: that independence is what keeps it up while one of them is down.
+
 **Liveness never checks a dependency.** `/alive` answers for the process only; `/health` is where
 dependencies belong. A liveness probe that pinged SQL Server would turn a thirty-second database blip into
 a restart of every healthy instance. Both endpoints are mapped only in Development, or where
-`HealthChecks:Expose` is set, and only Development gets the detailed body that names each dependency.
+`HealthChecks:Expose` is set, and only Development gets the detailed body that names each dependency. The
+AppHost sets `HealthChecks__Expose` on Catalog and Booking, because the gateway probes their `/health`: a
+probe that got a `404` would mark a perfectly healthy service dead.
 
 **Fixed local credentials.** The SA password and the JWT signing key are fixed development values declared
 in the AppHost. A generated password lives in user secrets, so clearing those while a data volume survives

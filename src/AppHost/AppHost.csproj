@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Gateway/Gateway.csproj" />
     <ProjectReference Include="../MigrationService/MigrationService.csproj" />
     <ProjectReference Include="../Services/Bookings/Bookings.Api/Bookings.Api.csproj" />
     <ProjectReference Include="../Services/Catalog/Catalog.Api/Catalog.Api.csproj" />

@@ -48,4 +48,19 @@ public static class ProblemTypes
 
     /// <summary>Something went wrong that the caller cannot act on.</summary>
     public const string Unexpected = $"{Base}unexpected-error";
+
+    /// <summary>The caller asked too often. <c>Retry-After</c> says when to come back.</summary>
+    public const string TooManyRequests = $"{Base}too-many-requests";
+
+    /// <summary>The gateway reached the service and could not get a usable answer out of it.</summary>
+    public const string UpstreamFailed = $"{Base}upstream-failed";
+
+    /// <summary>No healthy instance of the service that owns this path. Retrying later may work.</summary>
+    public const string UpstreamUnavailable = $"{Base}upstream-unavailable";
+
+    /// <summary>The service did not answer inside the gateway's budget. The request may still have run.</summary>
+    public const string UpstreamTimeout = $"{Base}upstream-timeout";
+
+    /// <summary>The caller must authenticate. The gateway produces this from chapter 5.</summary>
+    public const string Unauthenticated = $"{Base}unauthenticated";
 }
