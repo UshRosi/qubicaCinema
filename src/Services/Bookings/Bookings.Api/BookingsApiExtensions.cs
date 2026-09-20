@@ -1,7 +1,5 @@
 using FluentValidation;
-using QubicaCinema.BuildingBlocks.Application.Security;
 using QubicaCinema.Bookings.Api.Bookings;
-using QubicaCinema.Bookings.Api.Security;
 
 namespace QubicaCinema.Bookings.Api;
 
@@ -18,15 +16,6 @@ internal static class BookingsApiExtensions
         ValidatorOptions.Global.LanguageManager.Enabled = false;
 
         services.AddSingleton<IValidator<CreateBookingRequest>, CreateBookingRequestValidator>();
-
-        return services;
-    }
-
-    /// <summary>Adds the chapter 2 stand-in for the authenticated user.</summary>
-    internal static IServiceCollection AddStandInCurrentUser(this IServiceCollection services)
-    {
-        services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentUser, HeaderCurrentUser>();
 
         return services;
     }

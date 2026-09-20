@@ -3,6 +3,7 @@ using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Idempotency;
 using QubicaCinema.BuildingBlocks.Api.Paging;
 using QubicaCinema.BuildingBlocks.Api.Validation;
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Application.Results;
 using QubicaCinema.Bookings.Application.Bookings;
 using QubicaCinema.Bookings.Application.Bookings.CancelBooking;
@@ -16,7 +17,9 @@ namespace QubicaCinema.Bookings.Api.Bookings;
 /// <summary>The bookings: <c>/api/v1/bookings</c>.</summary>
 /// <remarks>
 /// Who may see which booking is decided in the use cases, not here, because it needs the loaded booking.
-/// The routes gain <c>RequireAuthorization</c> in chapter 5.
+/// The routes only require a token. Booking needs the <c>Customer</c> role, because an administrator does not
+/// book for themselves; everything else needs merely <c>authenticated</c>, and not <c>Customer</c>, so that an
+/// administrator reaches the use cases and their "may act for the cinema" rule instead of a 403 before it.
 /// </remarks>
 internal sealed class BookingEndpoints : IEndpointModule
 {
@@ -25,14 +28,17 @@ internal sealed class BookingEndpoints : IEndpointModule
         RouteGroupBuilder bookings = endpoints.MapGroup("/bookings").WithTags("Bookings");
 
         bookings.MapGet("/", ListAsync)
+            .RequiringPolicy(CinemaPolicies.Authenticated)
             .WithSummary("Lists the caller's bookings, newest first. An administrator may list anyone's.")
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
         bookings.MapGet("/{id:guid}", GetAsync)
+            .RequiringPolicy(CinemaPolicies.Authenticated)
             .WithSummary("Returns one booking, with its ETag.")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         bookings.MapPost("/", CreateAsync)
+            .RequiringPolicy(CinemaPolicies.Customer)
             // Validation first: a request that is wrong on its face must not claim an idempotency key.
             .ValidatingBody<CreateBookingRequest>()
             .RequiringIdempotencyKey<CreateBookingRequest>()
@@ -43,12 +49,14 @@ internal sealed class BookingEndpoints : IEndpointModule
         // A cancelled booking is still readable, so DELETE would promise something this service does not
         // do. The cancellation is its own sub-resource, and asking twice is not an error.
         bookings.MapPost("/{id:guid}/cancellation", CancelAsync)
+            .RequiringPolicy(CinemaPolicies.Authenticated)
             .WithSummary("Gives back every seat of a booking. The booking stays readable, as Cancelled.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         bookings.MapPost("/{id:guid}/items/{itemId:guid}/cancellation", CancelItemAsync)
+            .RequiringPolicy(CinemaPolicies.Authenticated)
             .WithSummary("Gives back one seat. Giving back the last seat cancels the booking.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)

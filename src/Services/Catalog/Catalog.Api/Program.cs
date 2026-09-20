@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.EventBus.RabbitMQ;
 using QubicaCinema.Catalog.Api;
 using QubicaCinema.Catalog.Api.Auditoriums;
@@ -38,10 +39,15 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // One exception handler for the whole service; no endpoint and no use case contains a try/catch.
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = AuthenticationProblemDetails.Describe);
 // Exception handlers run in registration order; each declines what it does not recognise.
 builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+
+// Catalog validates the tokens itself. The gateway checks them too, but a service that is reachable without it
+// (another container, a port on the same network) must not trust that it was.
+builder.Services.AddCinemaAuthentication(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddCinemaAuthorization();
 
 builder.Services.AddCatalogApplication();
 builder.Services.AddCatalogInfrastructure(
@@ -61,6 +67,11 @@ builder.Services.AddCatalogOutboxPublisher();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+// The 401 and the 403 leave the security middleware with no body; this gives them the same ProblemDetails
+// shape as every other error.
+app.UseStatusCodePages();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 

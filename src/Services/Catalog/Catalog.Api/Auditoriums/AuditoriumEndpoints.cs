@@ -1,5 +1,6 @@
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Paging;
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Api.Validation;
 using QubicaCinema.BuildingBlocks.Application.Results;
 using QubicaCinema.Catalog.Application.Auditoriums;
@@ -12,7 +13,8 @@ namespace QubicaCinema.Catalog.Api.Auditoriums;
 /// <summary>The screening rooms: <c>/api/v1/auditoriums</c>.</summary>
 /// <remarks>
 /// There is no update and no delete. A room's seat grid is referenced by every booking ever made in it, so
-/// changing it in place would rewrite history; a rebuilt room is a new auditorium.
+/// changing it in place would rewrite history; a rebuilt room is a new auditorium. Reading is open to
+/// everyone, and opening a room is an administrator's job.
 /// </remarks>
 internal sealed class AuditoriumEndpoints : IEndpointModule
 {
@@ -28,6 +30,7 @@ internal sealed class AuditoriumEndpoints : IEndpointModule
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         auditoriums.MapPost("/", CreateAsync)
+            .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<CreateAuditoriumRequest>()
             .WithSummary("Opens a room and lays out its grid of seats.")
             .ProducesProblem(StatusCodes.Status409Conflict);

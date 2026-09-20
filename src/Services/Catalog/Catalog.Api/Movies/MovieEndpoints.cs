@@ -1,6 +1,7 @@
 using QubicaCinema.BuildingBlocks.Api.Concurrency;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Paging;
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Api.Validation;
 using QubicaCinema.BuildingBlocks.Application.Results;
 using QubicaCinema.Catalog.Application.Movies;
@@ -13,8 +14,7 @@ namespace QubicaCinema.Catalog.Api.Movies;
 
 /// <summary>The film catalogue: <c>/api/v1/movies</c>.</summary>
 /// <remarks>
-/// Writing is an administrator's job. The routes are open in this chapter and gain
-/// <c>RequireAuthorization</c> in chapter 5, when there is an identity to check.
+/// Reading is open to everyone. Writing is an administrator's job, and the routes say so.
 /// </remarks>
 internal sealed class MovieEndpoints : IEndpointModule
 {
@@ -30,10 +30,12 @@ internal sealed class MovieEndpoints : IEndpointModule
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         movies.MapPost("/", CreateAsync)
+            .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<SaveMovieRequest>()
             .WithSummary("Adds a film to the catalogue.");
 
         movies.MapPut("/{id:guid}", UpdateAsync)
+            .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<SaveMovieRequest>()
             .RequiringIfMatch()
             .WithSummary("Corrects a film, provided nobody has edited it since it was read.")
