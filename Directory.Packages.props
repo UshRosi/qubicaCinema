@@ -29,6 +29,13 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
   </ItemGroup>
 
+  <ItemGroup Label="Authentication">
+    <!-- MIT, part of ASP.NET Core. Validates the bearer token in the services and in the gateway. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(MicrosoftVersion)" />
+    <!-- MIT, part of ASP.NET Core. Only the Identity persistence project references it. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="$(MicrosoftVersion)" />
+  </ItemGroup>
+
   <ItemGroup Label="Gateway">
     <!--
       MIT, verified in the 2.3.0 nuspec. Targets net8.0 and runs unchanged on net10.0. Deliberately not
@@ -47,6 +54,8 @@
     <!-- Abstractions only: an Application project registers its use cases without referencing a container. -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftVersion)" />
+    <!-- Where ValidateDataAnnotations lives, for the projects that are not on the ASP.NET Core framework. -->
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Aspire (AppHost only)">
@@ -73,6 +82,8 @@
   <ItemGroup Label="Tests">
     <!-- MIT, part of ASP.NET Core: hosts the gateway in memory so its routing can be tested without a container. -->
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(MicrosoftVersion)" />
+    <!-- MIT, part of ASP.NET Core: an in-memory server for testing the authentication pipeline end to end. -->
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(ExtensionsVersion)" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />

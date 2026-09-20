@@ -68,6 +68,7 @@ public sealed class DomainExceptionHandler(
         DomainErrorKind.NotFound => (StatusCodes.Status404NotFound, ProblemTypes.NotFound, "Not found"),
         DomainErrorKind.Conflict => (StatusCodes.Status409Conflict, ProblemTypes.Conflict, "Conflict"),
         DomainErrorKind.Invalid => (StatusCodes.Status422UnprocessableEntity, ProblemTypes.Invalid, "Unprocessable request"),
+        DomainErrorKind.Unauthenticated => (StatusCodes.Status401Unauthorized, ProblemTypes.Unauthenticated, "Authentication failed"),
         DomainErrorKind.Forbidden => (StatusCodes.Status403Forbidden, ProblemTypes.Forbidden, "Forbidden"),
         DomainErrorKind.PreconditionFailed => (StatusCodes.Status412PreconditionFailed, ProblemTypes.PreconditionFailed, "Precondition failed"),
 
