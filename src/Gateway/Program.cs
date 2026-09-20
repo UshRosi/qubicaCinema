@@ -1,3 +1,4 @@
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.Gateway;
 using QubicaCinema.Gateway.Errors;
 using QubicaCinema.Gateway.RateLimiting;
@@ -26,6 +27,12 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics => metrics.AddMeter(GatewayDiagnostics.ReverseProxy));
 
 // Routes, clusters, timeouts and probes are data, not code. The AppHost overrides exactly two strings.
+// The gateway validates the token itself, with the same code and the same key as the services, so the
+// per-route policies in appsettings.json are real. It is early rejection and not a trust boundary: each service
+// checks the token again.
+builder.Services.AddCinemaAuthentication(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddCinemaAuthorization();
+
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection(ReverseProxyConfig.SectionName));
 
@@ -45,11 +52,19 @@ app.UseExceptionHandler();
 // one. A client therefore parses one error shape whether the answer came from here or from a service.
 app.UseStatusCodePages();
 
+// Who the caller is has to be known before the limiter runs, so that it can count a signed-in caller by
+// their user id and not only by their address.
+app.UseAuthentication();
+
 // Before the timeout middleware, because refusing a request is cheaper than starting a time budget for it.
 // WebApplication puts routing ahead of all user middleware, so the endpoint and its metadata are already
 // selected here. That is what lets DisableRateLimiting on /health and /alive take effect, and what lets a
 // YARP route's RateLimiterPolicy resolve.
 app.UseRateLimiter();
+
+// After the limiter on purpose. A flood of requests that are about to be refused with a 401 or a 403 is still
+// a flood, and it should be counted and stopped before it costs a policy evaluation each.
+app.UseAuthorization();
 
 app.UseRequestTimeouts();
 
