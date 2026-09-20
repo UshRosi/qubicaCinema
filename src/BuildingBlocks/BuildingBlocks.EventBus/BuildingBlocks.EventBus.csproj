@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    What the services know about messaging, and nothing about the broker: the bus port, the handler shape,
+    the inbox port and the one serializer. No package reference. A service that publishes or subscribes
+    depends on this project, and only its composition root depends on an implementation of it.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../BuildingBlocks.Contracts/BuildingBlocks.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -30,7 +30,7 @@ var bookingDb = sql.AddDatabase("bookingdb");
 
 // The management UI is linked from the dashboard, so a reviewer can watch queues drain while seats are
 // booked. It costs about 100 MB of image and is worth it for an event-driven exercise.
-builder.AddRabbitMQ("rabbitmq")
+var rabbitmq = builder.AddRabbitMQ("rabbitmq")
     .WithManagementPlugin()
     .WithLifetime(containerLifetime);
 
@@ -48,13 +48,18 @@ var migrations = builder.AddProject<Projects.MigrationService>("migrations")
 // WaitForCompletion, not WaitFor: the migration service is a task that ends, and the API must not start
 // against a schema that is still being applied. A non-zero exit code from it stops the API from starting
 // at all, which is the behaviour wanted — a service on a half-built schema fails in far stranger ways.
+// WithReference(rabbitmq) hands each service ConnectionStrings__rabbitmq, the same plain key the code reads
+// under any other deployment. WaitFor, not WaitForCompletion: the broker keeps running, and a service that
+// starts before it is ready would only spend its first connection attempts failing.
 builder.AddProject<Projects.Catalog_Api>("catalog")
     .WithReference(catalogDb)
+    .WithReference(rabbitmq).WaitFor(rabbitmq)
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health");
 
 builder.AddProject<Projects.Bookings_Api>("booking")
     .WithReference(bookingDb)
+    .WithReference(rabbitmq).WaitFor(rabbitmq)
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health");
 

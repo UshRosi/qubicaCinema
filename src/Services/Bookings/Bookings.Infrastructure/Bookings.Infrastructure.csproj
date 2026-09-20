@@ -2,8 +2,8 @@
 
   <!--
     Everything in Booking that knows about SQL Server: the DbContext, the mappings (the filtered unique index
-    that prevents double booking among them), the idempotency store, the repositories, the read side and
-    the database initializer. It implements the ports declared in Bookings.Application.
+    that prevents double booking among them), the idempotency store and the inbox, the repositories, the read
+    side and the database initializer. It implements the ports declared in Bookings.Application.
   -->
 
   <ItemGroup>

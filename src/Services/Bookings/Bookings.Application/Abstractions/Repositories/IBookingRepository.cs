@@ -13,6 +13,12 @@ public interface IBookingRepository
     /// <summary>Loads a booking with every one of its items, or null when there is none with that id.</summary>
     Task<Booking?> FindAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Loads, with their items, every booking that still holds a seat at the given screening. Used when the
+    /// screening is called off, to give those seats back.
+    /// </summary>
+    Task<IReadOnlyCollection<Booking>> GetHoldingSeatsForAsync(Guid screeningId, CancellationToken cancellationToken);
+
     /// <summary>Stages a new booking and its items.</summary>
     void Add(Booking booking);
 

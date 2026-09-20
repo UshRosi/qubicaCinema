@@ -178,6 +178,39 @@ public sealed class Booking : AggregateRoot<Guid>
         }
     }
 
+    /// <summary>
+    /// Gives back every seat held at one screening, because the cinema called that screening off. A booking
+    /// left holding nothing is cancelled.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="Cancel"/> this is not the customer's choice, so it never refuses: a screening that
+    /// is called off has no start time to be "too late" for. Idempotent — a booking with nothing held at that
+    /// screening is left exactly as it was, which is what makes a redelivered event harmless.
+    /// </remarks>
+    /// <param name="screeningId">The screening that was cancelled.</param>
+    /// <param name="clock">The clock, for the time the seats were given back.</param>
+    public void ReleaseSeatsFor(Guid screeningId, TimeProvider clock)
+    {
+        BookingItem[] held = [.. ActiveItems.Where(item => item.ScreeningId == screeningId)];
+
+        if (held.Length == 0)
+        {
+            return;
+        }
+
+        DateTimeOffset now = clock.GetUtcNow();
+
+        foreach (BookingItem item in held)
+        {
+            item.Cancel(now);
+        }
+
+        if (!ActiveItems.Any())
+        {
+            MarkCancelled(now);
+        }
+    }
+
     private void MarkCancelled(DateTimeOffset now)
     {
         Status = BookingStatus.Cancelled;

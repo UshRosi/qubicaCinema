@@ -17,6 +17,18 @@ internal sealed class BookingRepository(BookingDbContext context) : IBookingRepo
             .FirstOrDefaultAsync(booking => booking.Id == id, cancellationToken);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyCollection<Booking>> GetHoldingSeatsForAsync(
+        Guid screeningId,
+        CancellationToken cancellationToken) =>
+        await context.Bookings
+            // Every item, not only the ones at this screening: the booking decides for itself whether it is
+            // left holding anything, and it can only do that if it can see all of its items.
+            .Include(booking => booking.Items)
+            .Where(booking => booking.Items.Any(item =>
+                item.ScreeningId == screeningId && item.Status == BookingItemStatus.Active))
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
     public void Add(Booking booking) => context.Bookings.Add(booking);
 
     /// <inheritdoc />

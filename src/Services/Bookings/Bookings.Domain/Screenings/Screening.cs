@@ -11,7 +11,7 @@ namespace QubicaCinema.Bookings.Domain.Screenings;
 /// Not Catalog's aggregate and not a reference into Catalog's database. Each service keeps the data it
 /// decides with, so a booking can be made while Catalog is down, and the price a customer pays is the one
 /// this service knew when it took the booking. The id is Catalog's, so both sides talk about the same
-/// screening; the copy is kept current by Catalog's events from chapter 3 on.
+/// screening; the copy is kept current by Catalog's events.
 /// <para>
 /// It carries the movie title and the auditorium name, denormalised, because the seat map shows them and
 /// Booking has no movies or auditoriums of its own to join to.
@@ -77,6 +77,27 @@ public sealed class Screening : AggregateRoot<Guid>
         DateTimeOffset startsAt,
         Money price) =>
         new(id, auditoriumId, auditoriumName, movieTitle, startsAt, price);
+
+    /// <summary>Applies the new time and price Catalog announced.</summary>
+    /// <remarks>
+    /// Ignored once the screening is cancelled: a called-off screening stays called off, whatever order the
+    /// announcements happen to arrive in. Bookings already taken keep the price they were made at.
+    /// </remarks>
+    /// <param name="startsAt">The new admission time.</param>
+    /// <param name="price">The new price of one seat.</param>
+    public void Reschedule(DateTimeOffset startsAt, Money price)
+    {
+        if (Status == ScreeningStatus.Cancelled)
+        {
+            return;
+        }
+
+        StartsAt = startsAt;
+        Price = price;
+    }
+
+    /// <summary>Records that Catalog called the screening off. Idempotent.</summary>
+    public void Cancel() => Status = ScreeningStatus.Cancelled;
 
     /// <summary>
     /// Whether it is under way or over at the given instant. A cancelled screening never starts, so it

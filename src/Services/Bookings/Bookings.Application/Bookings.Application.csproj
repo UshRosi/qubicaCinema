@@ -2,12 +2,14 @@
 
   <!--
     The Booking use cases and the ports they need. It references the Domain and the application building
-    blocks only — no EF Core, no ASP.NET Core — so every use case can be exercised with substitutes and a
+    blocks only — no EF Core, no ASP.NET Core, no broker: the integration event handlers know the event
+    contracts and the handler shape, and nothing about RabbitMQ — so every use case can be exercised with substitutes and a
     FakeTimeProvider.
   -->
 
   <ItemGroup>
     <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.EventBus/BuildingBlocks.EventBus.csproj" />
     <ProjectReference Include="../Bookings.Domain/Bookings.Domain.csproj" />
   </ItemGroup>
 

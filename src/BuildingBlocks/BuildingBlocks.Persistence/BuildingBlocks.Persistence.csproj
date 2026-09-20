@@ -1,17 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Persistence shared by the services and the migration service: the database-initializer abstraction and
-    the EF Core implementation of the idempotency store, which is the same code whatever a service stores.
-    It knows EF Core and SQL Server, and no bounded context.
+    Persistence shared by the services and the migration service: the database-initializer abstraction, the
+    EF Core implementation of the idempotency store, and the transactional outbox and inbox. All of it is the
+    same code whatever a service stores. It knows EF Core and SQL Server, and no bounded context.
   -->
 
   <ItemGroup>
     <ProjectReference Include="../BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+    <ProjectReference Include="../BuildingBlocks.EventBus/BuildingBlocks.EventBus.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <!-- For BackgroundService, which the outbox publisher is. Not the ASP.NET Core framework: the migration service references this project too. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
 </Project>

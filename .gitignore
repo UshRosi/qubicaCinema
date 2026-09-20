@@ -486,3 +486,8 @@ $RECYCLE.BIN/
 *.md
 !README.md
 docs/
+
+# Local editor / tooling state
+.vscode/
+*.session.sql
+.aspire/

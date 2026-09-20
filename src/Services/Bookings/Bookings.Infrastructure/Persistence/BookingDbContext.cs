@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using QubicaCinema.BuildingBlocks.Domain;
 using QubicaCinema.BuildingBlocks.Persistence;
 using QubicaCinema.BuildingBlocks.Persistence.Idempotency;
+using QubicaCinema.BuildingBlocks.Persistence.Inbox;
 using QubicaCinema.Bookings.Domain.Bookings;
 using QubicaCinema.Bookings.Domain.Exceptions;
 using QubicaCinema.Bookings.Domain.Screenings;
@@ -69,6 +70,10 @@ public sealed class BookingDbContext(DbContextOptions<BookingDbContext> options)
         // any service, and it must live in this database so that a key and the booking it protects are
         // written in one transaction.
         modelBuilder.AddIdempotencyRecords();
+
+        // Which of Catalog's events have already been applied, so that a redelivered message changes
+        // nothing. In this database for the same reason: the mark and the change are one transaction.
+        modelBuilder.AddInboxMessages();
 
         base.OnModelCreating(modelBuilder);
     }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using QubicaCinema.BuildingBlocks.Domain;
 using QubicaCinema.BuildingBlocks.Persistence;
+using QubicaCinema.BuildingBlocks.Persistence.Outbox;
 using QubicaCinema.Catalog.Application.Abstractions.Queries;
 using QubicaCinema.Catalog.Application.Abstractions.Repositories;
 using QubicaCinema.Catalog.Infrastructure.Persistence;
@@ -68,4 +69,18 @@ public static class CatalogInfrastructureExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Adds the publisher that sends what Catalog wrote to its outbox to the event bus.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="AddCatalogInfrastructure"/> because only the API publishes. The migration
+    /// service writes outbox rows when it seeds the catalogue, and must not try to publish them: it has no
+    /// bus, and the API drains the rows when it starts. Integration tests pass <c>false</c> and pump
+    /// <see cref="IOutboxProcessor"/> by hand.
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="runPublisher">Whether to start the publishing loop.</param>
+    public static IServiceCollection AddCatalogOutboxPublisher(this IServiceCollection services, bool runPublisher = true) =>
+        services.AddOutboxPublisher<CatalogDbContext>(runPublisher);
 }

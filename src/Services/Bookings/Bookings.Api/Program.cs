@@ -2,10 +2,13 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Contracts.Catalog;
+using QubicaCinema.BuildingBlocks.EventBus.RabbitMQ;
 using QubicaCinema.Bookings.Api;
 using QubicaCinema.Bookings.Api.Bookings;
 using QubicaCinema.Bookings.Api.Screenings;
 using QubicaCinema.Bookings.Application;
+using QubicaCinema.Bookings.Application.IntegrationEvents;
 using QubicaCinema.Bookings.Infrastructure;
 using QubicaCinema.ServiceDefaults;
 
@@ -43,6 +46,18 @@ builder.Services.AddBookingsInfrastructure(
     ?? throw new InvalidOperationException(
         "The connection string 'bookingdb' is missing. The AppHost supplies it as ConnectionStrings__bookingdb."));
 builder.Services.AddBookingValidators();
+
+// Booking's screenings and seats are not its own: Catalog owns them and announces every change. This queue is
+// how they arrive. One handler per event; adding a fourth event means one more Subscribe line.
+builder.Services.AddRabbitMqSubscriber(
+    builder.Configuration.GetConnectionString(RabbitMqServiceCollectionExtensions.ConnectionName)
+    ?? throw new InvalidOperationException(
+        "The connection string 'rabbitmq' is missing. The AppHost supplies it as ConnectionStrings__rabbitmq."),
+    queueName: "booking",
+    subscriptions => subscriptions
+        .Subscribe<ScreeningScheduled, ScreeningScheduledHandler>()
+        .Subscribe<ScreeningRescheduled, ScreeningRescheduledHandler>()
+        .Subscribe<ScreeningCancelled, ScreeningCancelledHandler>());
 builder.Services.AddStandInCurrentUser();
 
 var app = builder.Build();

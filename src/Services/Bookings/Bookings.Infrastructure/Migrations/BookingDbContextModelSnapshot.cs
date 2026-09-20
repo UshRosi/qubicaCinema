@@ -219,6 +219,24 @@ namespace QubicaCinema.Bookings.Infrastructure.Migrations
                     b.ToTable("IdempotencyRecords", (string)null);
                 });
 
+            modelBuilder.Entity("QubicaCinema.BuildingBlocks.Persistence.Inbox.InboxMessage", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EventName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTimeOffset>("ProcessedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("InboxMessages", (string)null);
+                });
+
             modelBuilder.Entity("QubicaCinema.Bookings.Domain.Bookings.BookingItem", b =>
                 {
                     b.HasOne("QubicaCinema.Bookings.Domain.Bookings.Booking", null)

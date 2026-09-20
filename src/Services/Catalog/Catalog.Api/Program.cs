@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.EventBus.RabbitMQ;
 using QubicaCinema.Catalog.Api;
 using QubicaCinema.Catalog.Api.Auditoriums;
 using QubicaCinema.Catalog.Api.Movies;
@@ -31,9 +32,9 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     // into the enum later cannot silently renumber what older clients already understand.
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 
-    // UnmappedMemberHandling stays at its default of Skip. Tolerant readers are a rule of this solution:
-    // from chapter 3 the same convention carries event contracts, where rejecting an unknown property
-    // would mean a new field in a publisher takes down every consumer that has not been redeployed.
+    // UnmappedMemberHandling stays at its default of Skip. Tolerant readers are a rule of this solution,
+    // and the same convention carries the event contracts, where rejecting an unknown property would mean
+    // a new field in a publisher takes down every consumer that has not been redeployed.
 });
 
 // One exception handler for the whole service; no endpoint and no use case contains a try/catch.
@@ -48,6 +49,14 @@ builder.Services.AddCatalogInfrastructure(
     ?? throw new InvalidOperationException(
         "The connection string 'catalogdb' is missing. The AppHost supplies it as ConnectionStrings__catalogdb."));
 builder.Services.AddCatalogValidators();
+
+// Catalog only publishes. The use cases never touch the bus: they write to the outbox in their own
+// transaction, and this background publisher is the single place an event leaves the service.
+builder.Services.AddRabbitMqEventBus(
+    builder.Configuration.GetConnectionString(RabbitMqServiceCollectionExtensions.ConnectionName)
+    ?? throw new InvalidOperationException(
+        "The connection string 'rabbitmq' is missing. The AppHost supplies it as ConnectionStrings__rabbitmq."));
+builder.Services.AddCatalogOutboxPublisher();
 
 var app = builder.Build();
 

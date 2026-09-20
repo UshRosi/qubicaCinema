@@ -13,8 +13,8 @@ The solution is built chapter by chapter, and each chapter ends with commits tha
 |---|---|---|
 | 0 | Bootstrap: build configuration, ServiceDefaults, AppHost, migration service, domain building blocks | done |
 | 1 | Catalog: movies, auditoriums, screenings | done |
-| 2 | Booking: seat allocation, availability, cancellation, idempotency | planned |
-| 3 | Event-driven integration over RabbitMQ, with the Catalog outbox | planned |
+| 2 | Booking: seat allocation, availability, cancellation, idempotency | done |
+| 3 | Event-driven integration over RabbitMQ: Catalog outbox, Booking inbox | done |
 | 4 | YARP gateway | planned |
 | 5 | Identity and JWT | planned |
 | 6–9 | API documentation, tests, CI, final polish | planned |
@@ -107,18 +107,45 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | `src/ServiceDefaults` | OpenTelemetry and health-check plumbing shared by every process. No Aspire package |
 | `src/MigrationService` | Applies every schema once and exits; a non-zero exit code stops the services from starting |
 | `src/BuildingBlocks/BuildingBlocks.Domain` | `Entity`, `AggregateRoot`, `IDomainEvent`, `IUnitOfWork`, `DomainException`. No dependencies |
-| `src/BuildingBlocks/BuildingBlocks.Persistence` | `IDatabaseInitializer`, the seam between a service's schema and the migration service |
+| `src/BuildingBlocks/BuildingBlocks.Persistence` | `IDatabaseInitializer`, the idempotency store, and the transactional outbox and inbox, generic over a service's `DbContext` |
+| `src/BuildingBlocks/BuildingBlocks.Contracts` | The integration events (`ScreeningScheduled`, `ScreeningRescheduled`, `ScreeningCancelled`): flat records with a stable wire name. No dependencies |
+| `src/BuildingBlocks/BuildingBlocks.EventBus` | What a service knows about messaging and nothing about the broker: `IEventBus`, `IIntegrationHandler`, `IInbox` |
+| `src/BuildingBlocks/BuildingBlocks.EventBus.RabbitMQ` | The publisher, the consumer, the topology and the health check, written on the official `RabbitMQ.Client` |
 | `src/BuildingBlocks/BuildingBlocks.Application` | `ICommandHandler`, `IQueryHandler`, `PagedResult`, `Versioned`: the shapes every use case is written in |
 | `src/BuildingBlocks/BuildingBlocks.Api` | Endpoint modules, the one ProblemDetails mapping, paging, validation and `If-Match` filters |
 | `src/Services/Catalog/Catalog.Domain` | `Movie`, `Auditorium` with its `Seat`s, `Screening`; `Money`, `TimeSlot`, `SeatPosition` |
 | `src/Services/Catalog/Catalog.Application` | One folder per use case (command or query, and its handler), and one port per repository and read model |
 | `src/Services/Catalog/Catalog.Infrastructure` | EF Core mappings, migrations, repositories, read-side projections, the seed |
 | `src/Services/Catalog/Catalog.Api` | `/api/v1/movies`, `/auditoriums`, `/screenings`, and the request validators |
+| `src/Services/Bookings/Bookings.Application` | Booking's use cases, and one handler per Catalog event that keeps its screenings and seats current |
 | `tests/Catalog.UnitTests` | The domain rules and the use cases, with no container and no database |
+| `tests/Bookings.UnitTests`, `tests/BuildingBlocks.UnitTests` | Booking's domain and handlers; the shared kernel, the event contracts and the outbox |
 
 Inside a service the dependencies point inwards: `Api → Application → Domain`, and `Infrastructure`
 implements the ports that `Application` declares. The domain projects reference nothing but
 `BuildingBlocks.Domain`.
+
+## How the services talk
+
+```
+Catalog  ── SaveChanges ──►  Screenings + OutboxMessages   (one transaction)
+                                       │
+              outbox publisher  ◄──────┘   claims a batch, publishes in order, stops at the first failure
+                    │  publisher confirms · mandatory
+                    ▼
+        RabbitMQ  topic exchange "qubica.events"  ── routing key = event name
+                    │
+                    ▼  quorum queue "booking"
+        Booking consumer:  inbox check → handler → inbox row + changes in ONE SaveChanges → ack
+                    │ transient failure                      │ permanent failure, or retries used up
+                    ▼                                        ▼
+        "booking.retry.1|2|3"  (TTL 5 s · 30 s · 2 min,      "booking.dead-letter"
+         then back to "booking")
+```
+
+Scheduling a screening in Catalog makes its seat map appear in Booking within a second or so; cancelling it
+releases every seat booked for it. Stopping RabbitMQ leaves Catalog writable (the rows wait in the outbox,
+with their attempt count and last error) and Booking readable; both recover when the broker returns.
 
 ## Trade-offs
 
@@ -180,6 +207,48 @@ sorts are typed parameters, never a free-form string.
 owning row. EF Core cannot declare an index that reaches into a complex type, so the two indexes that do —
 seat positions unique per auditorium, and screenings by auditorium and start time — are written in the
 initial migration, with the reason next to them.
+
+**The outbox, not a publish call.** A use case never touches the event bus. Catalog stages an outbox row in
+`SaveChanges`, in the same transaction as the change it announces, and a background service delivers it.
+Publishing from a handler would be a second write outside that transaction: a crash between the two would
+leave a screening that exists and was never announced. The row also stores the W3C trace context it was
+written in, so the trace from the API call runs on through the broker into Booking.
+
+**Events are a wire contract with a stable name.** `catalog.screening-scheduled.v1` is a literal, never a CLR
+type name: renaming a class must not orphan a stored row or a message in flight. Fields are only ever added,
+and optionally; readers ignore what they do not know. Changing a meaning is a `…v2` type, with the reader
+deployed before the writer. `ScreeningScheduled` carries the auditorium's whole seat map, so Booking needs no
+earlier state and a replay is trivially correct, at the price of repeating the seat list for every
+screening in a room. The normalised alternative — an auditorium event plus a lean screening event — would
+force Booking to cope with a screening arriving before its auditorium.
+
+**At-least-once delivery, effectively-once processing.** The consumer records each event in an inbox table in
+the same transaction as the handler's changes and acknowledges only after the commit. A crash between the
+commit and the ack redelivers the message, and the inbox turns it into a no-op.
+
+**Retry with backoff, and only for what time can cure.** A failed handler is not requeued at once: an
+immediate retry would use every attempt in milliseconds, well inside a database restart. A small classifier
+asks whether waiting changes the answer. A timeout, a lost race, or a screening whose announcement has not
+arrived yet is transient: the message is parked in a retry queue whose time-to-live grows with each attempt
+(5 s, 30 s, 2 min) and dead-lettered back to the consumer's own queue when it expires. A payload that cannot
+be read, or data the model refuses, will fail identically forever and goes straight to the dead-letter queue.
+There is one retry queue per delay rather than one delay per message, because only the message at the head
+of a queue can expire. The retry queues dead-letter to the consumer's queue directly, not through the events
+exchange, which would hand the message to every other service as well. The message is confirmed in the retry
+queue before the original is acknowledged, so a failure in between duplicates it instead of losing it.
+
+**Ordered, single publisher.** The outbox publishes in order and stops at the first failure, so a cancellation
+can never overtake the announcement of its screening; one stuck message therefore holds back the ones behind
+it. That ordering holds for one publisher instance, and the consumer is likewise sequential. Running several
+of either would need a per-screening sequence number.
+
+**Cancelling a screening cancels its bookings, and Booking publishes nothing.** A confirmed booking for a
+screening that will never happen is a state nobody can explain, so the consumer releases the seats. It does
+not announce that in turn: doing so from inside a handler would reintroduce the dual write the outbox exists
+to avoid. If a notification service ever needs it, Booking gets an outbox of its own.
+
+**RabbitMQ being down is a degradation, not an outage.** The RabbitMQ health check reports `Degraded`, which
+still answers `200`: reads in Booking do not need the broker, and Catalog's writes are held by the outbox.
 
 **No SourceLink, symbols or package metadata.** Nothing here is published as a NuGet package, so that
 machinery would be ceremony. `Directory.Build.props` carries only settings this solution actually uses.
