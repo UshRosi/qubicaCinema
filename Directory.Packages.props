@@ -28,6 +28,7 @@
     <!-- Apache-2.0, verified in the 12.1.1 nuspec; a different maintainer from MediatR and AutoMapper. -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
   </ItemGroup>
+      MIT, verified in the 2.3.0 nuspec. Targets net8.0 and runs unchanged on net10.0. Deliberately not
 
   <ItemGroup Label="Messaging">
     <!-- Apache-2.0 OR MPL-2.0, verified in the 7.2.1 nuspec. The official client; no framework on top of it. -->

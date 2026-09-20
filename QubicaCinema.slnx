@@ -18,6 +18,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AppHost/AppHost.csproj" />
+    <Project Path="src/Gateway/Gateway.csproj" />
     <Project Path="src/MigrationService/MigrationService.csproj" />
     <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
