@@ -3,10 +3,12 @@
   <!--
     The shared kernel's own tests. Money and SeatPosition are used by both services, so their rules are
     checked once here rather than twice, once per service. The same goes for the messaging building blocks:
-    the event contracts, the outbox message and its options, and the subscription registration.
+    the event contracts, the outbox message and its options, and the subscription registration, and the
+    bearer-token configuration that the gateway and both services share.
   -->
 
   <ItemGroup>
+    <ProjectReference Include="../../src/BuildingBlocks/BuildingBlocks.Authentication/BuildingBlocks.Authentication.csproj" />
     <ProjectReference Include="../../src/BuildingBlocks/BuildingBlocks.Domain/BuildingBlocks.Domain.csproj" />
     <ProjectReference Include="../../src/BuildingBlocks/BuildingBlocks.EventBus.RabbitMQ/BuildingBlocks.EventBus.RabbitMQ.csproj" />
     <ProjectReference Include="../../src/BuildingBlocks/BuildingBlocks.Persistence/BuildingBlocks.Persistence.csproj" />
