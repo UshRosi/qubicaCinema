@@ -1,10 +1,12 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using QubicaCinema.BuildingBlocks.Domain;
+using QubicaCinema.BuildingBlocks.Persistence.Outbox;
 using QubicaCinema.Catalog.Domain.Auditoriums;
 using QubicaCinema.Catalog.Domain.Exceptions;
 using QubicaCinema.Catalog.Domain.Movies;
 using QubicaCinema.Catalog.Domain.Screenings;
+using QubicaCinema.Catalog.Infrastructure.Messaging;
 
 namespace QubicaCinema.Catalog.Infrastructure.Persistence;
 
@@ -32,18 +34,25 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
     public DbSet<Screening> Screenings => Set<Screening>();
 
     /// <summary>
-    /// Commits the use case, translating the store's failures into the domain's own vocabulary.
+    /// Commits the use case — announcing what changed through the outbox in the same transaction —
+    /// translating the store's failures into the domain's own vocabulary.
     /// </summary>
     /// <remarks>
+    /// The outbox rows are staged first, so they are saved by the very same <c>SaveChanges</c> as the
+    /// aggregates they describe: either both are committed or neither is.
+    /// <para>
     /// Translation happens here and nowhere else. A unique index and a row version are how SQL Server
     /// enforces two rules the model states; catching them in Application or in an endpoint would put
     /// <c>DbUpdateException</c> and SQL error numbers in layers that are not supposed to know what a
     /// database is — and every one of those places would need the same <c>try/catch</c>.
+    /// </para>
     /// </remarks>
     /// <exception cref="ConcurrentModificationException">Someone else changed a row first.</exception>
     /// <exception cref="AuditoriumNameAlreadyUsedException">Two auditoriums were given the same name.</exception>
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        await CatalogOutbox.StageAsync(this, cancellationToken);
+
         try
         {
             return await base.SaveChangesAsync(cancellationToken);
@@ -71,6 +80,10 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         // One IEntityTypeConfiguration per aggregate, discovered from this assembly: adding a mapping means
         // adding a file, and no central list can drift out of date.
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CatalogDbContext).Assembly);
+
+        // The announcements of what happened here, saved with the change that caused them. The table is a
+        // building block; adding it explicitly means a service that publishes nothing does not get one.
+        modelBuilder.AddOutboxMessages();
 
         base.OnModelCreating(modelBuilder);
     }
