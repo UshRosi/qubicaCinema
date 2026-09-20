@@ -23,6 +23,7 @@
     -->
     <ProjectReference Include="../Services/Bookings/Bookings.Infrastructure/Bookings.Infrastructure.csproj" />
     <ProjectReference Include="../Services/Catalog/Catalog.Infrastructure/Catalog.Infrastructure.csproj" />
+    <ProjectReference Include="../Services/Identity/Identity.Persistence/Identity.Persistence.csproj" />
     <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
 

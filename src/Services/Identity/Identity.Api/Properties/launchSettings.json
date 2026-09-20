@@ -1,0 +1,14 @@
+{
+  // Used when this service is started on its own, with the connection string and the Jwt__* keys supplied by
+  // hand. Under the AppHost none of this applies: the orchestrator assigns the ports and passes the environment.
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5103",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
