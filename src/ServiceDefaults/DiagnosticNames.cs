@@ -5,13 +5,14 @@ namespace QubicaCinema.ServiceDefaults;
 /// <see cref="System.Diagnostics.Metrics.Meter"/> instances the solution owns.
 /// Declared once so that producers and the telemetry configuration cannot drift apart.
 /// </summary>
+/// <remarks>
+/// The event bus has no entry here: its source, <c>QubicaCinema.EventBus</c>, is declared in the RabbitMQ
+/// building block that owns it, which cannot reference this project. It is picked up by the wildcard.
+/// </remarks>
 public static class DiagnosticNames
 {
     /// <summary>Root name; every other name in the solution is a suffix of it.</summary>
     public const string Root = "QubicaCinema";
-
-    /// <summary>Publishing and consuming of integration events.</summary>
-    public const string EventBus = $"{Root}.EventBus";
 
     /// <summary>The Booking bounded context.</summary>
     public const string Booking = $"{Root}.Booking";

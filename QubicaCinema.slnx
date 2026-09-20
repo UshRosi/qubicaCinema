@@ -38,6 +38,8 @@
     <Project Path="src/BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.Contracts/BuildingBlocks.Contracts.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.Domain/BuildingBlocks.Domain.csproj" />
+    <Project Path="src/BuildingBlocks/BuildingBlocks.EventBus/BuildingBlocks.EventBus.csproj" />
+    <Project Path="src/BuildingBlocks/BuildingBlocks.EventBus.RabbitMQ/BuildingBlocks.EventBus.RabbitMQ.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.Persistence/BuildingBlocks.Persistence.csproj" />
   </Folder>
 </Solution>
