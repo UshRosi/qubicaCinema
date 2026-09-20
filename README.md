@@ -16,7 +16,7 @@ The solution is built chapter by chapter, and each chapter ends with commits tha
 | 2 | Booking: seat allocation, availability, cancellation, idempotency | done |
 | 3 | Event-driven integration over RabbitMQ: Catalog outbox, Booking inbox | done |
 | 4 | YARP gateway: routing, rate limiting, one error shape | done |
-| 5 | Identity and JWT | planned |
+| 5 | Identity and JWT: register, log in, roles, one signing key, protected routes | done |
 | 6–9 | API documentation, tests, CI, final polish | planned |
 
 ## Prerequisites
@@ -46,23 +46,38 @@ service starts.
 
 Everything is reached through the gateway. Aspire assigns its port on every run, so read the `gateway`
 endpoint from the dashboard and put it in a variable. The migration service seeds three auditoriums, six
-films and a week of screenings, laid out relative to today so that they are always in the future.
+films and a week of screenings, laid out relative to today so that they are always in the future, and an
+administrator account.
+
+Reading the programme and the seat map needs no token. Writing to the catalogue needs the administrator's,
+and booking needs a customer's. The seeded administrator is `admin@qubicacinema.local` with the password
+`Admin!Cinema1` (local development values, set in `src/AppHost/appsettings.json`).
 
 ```bash
 GW=http://localhost:<the gateway port from the dashboard>
 
+# The administrator's token, for the writes below.
+ADMIN=$(curl -s -X POST "$GW/api/v1/auth/login" -H 'Content-Type: application/json' \
+     -d '{"email":"admin@qubicacinema.local","password":"Admin!Cinema1"}' | jq -r .accessToken)
+
+# A customer, for bookings. Registering creates a Customer; there is no way to register as an administrator.
+curl -i -X POST "$GW/api/v1/auth/register" -H 'Content-Type: application/json' \
+     -d '{"email":"ada@example.com","password":"Correct-horse-1","firstName":"Ada","lastName":"Lovelace"}'
+CUSTOMER=$(curl -s -X POST "$GW/api/v1/auth/login" -H 'Content-Type: application/json' \
+     -d '{"email":"ada@example.com","password":"Correct-horse-1"}' | jq -r .accessToken)
+
 curl "$GW/api/v1/screenings?pageSize=5"
 curl "$GW/api/v1/screenings?sort=CheapestFirst&from=2030-01-01T00:00:00Z"
 curl -i "$GW/api/v1/movies/{id}"                                    # note the ETag header
-curl -i -X PUT "$GW/api/v1/movies/{id}" \
+curl -i -X PUT "$GW/api/v1/movies/{id}" -H "Authorization: Bearer $ADMIN" \
      -H 'Content-Type: application/json' -H 'If-Match: "<etag>"' \
      -d '{"title":"…","description":"…","durationMinutes":120,"genre":"Drama","ageRating":"Teen"}'
-curl -i -X POST "$GW/api/v1/screenings/{id}/cancellation" \
+curl -i -X POST "$GW/api/v1/screenings/{id}/cancellation" -H "Authorization: Bearer $ADMIN" \
      -H 'Content-Type: application/json' -d '{"reason":"projector failure"}'
 
 # The seat map is Booking's, the rest of /screenings is Catalog's; the client cannot tell.
 curl -i "$GW/api/v1/screenings/{id}/seats"                          # Cache-Control: no-store
-curl -i -X POST "$GW/api/v1/bookings" \
+curl -i -X POST "$GW/api/v1/bookings" -H "Authorization: Bearer $CUSTOMER" \
      -H 'Content-Type: application/json' -H "Idempotency-Key: $(uuidgen)" \
      -d '{"items":[{"screeningId":"{id}","selection":{"mode":"quantity","quantity":2}}]}'
 ```
@@ -77,8 +92,7 @@ dotnet ef migrations add <Name> \
   --startup-project src/Services/Catalog/Catalog.Api
 ```
 
-The endpoints are open for now; administrator-only writes arrive with authentication in chapter 5. The
-services also listen on ports of their own, which is what their launch profiles are for when one is started
+The services also listen on ports of their own, which is what their launch profiles are for when one is started
 by hand; under the AppHost, treat the gateway as the only door.
 
 Local development behaviour is configurable through the `Cinema` section — for example
@@ -122,12 +136,16 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | `src/BuildingBlocks/BuildingBlocks.EventBus` | What a service knows about messaging and nothing about the broker: `IEventBus`, `IIntegrationHandler`, `IInbox` |
 | `src/BuildingBlocks/BuildingBlocks.EventBus.RabbitMQ` | The publisher, the consumer, the topology and the health check, written on the official `RabbitMQ.Client` |
 | `src/BuildingBlocks/BuildingBlocks.Application` | `ICommandHandler`, `IQueryHandler`, `PagedResult`, `Versioned`: the shapes every use case is written in |
+| `src/BuildingBlocks/BuildingBlocks.Authentication` | `JwtOptions` and its validator, the bearer configuration, the `Admin` / `Customer` / `authenticated` policies and the `ICurrentUser` that reads the validated token. Referenced by the gateway, Catalog, Booking and Identity |
 | `src/BuildingBlocks/BuildingBlocks.Api` | Endpoint modules, the one ProblemDetails mapping, paging, validation and `If-Match` filters |
 | `src/Services/Catalog/Catalog.Domain` | `Movie`, `Auditorium` with its `Seat`s, `Screening`; `Money`, `TimeSlot`, `SeatPosition` |
 | `src/Services/Catalog/Catalog.Application` | One folder per use case (command or query, and its handler), and one port per repository and read model |
 | `src/Services/Catalog/Catalog.Infrastructure` | EF Core mappings, migrations, repositories, read-side projections, the seed |
 | `src/Services/Catalog/Catalog.Api` | `/api/v1/movies`, `/auditoriums`, `/screenings`, and the request validators |
 | `src/Services/Bookings/Bookings.Application` | Booking's use cases, and one handler per Catalog event that keeps its screenings and seats current |
+| `src/Services/Identity/Identity.Persistence` | The user and role types, the `DbContext`, the seeded roles and administrator, and the registration of ASP.NET Core Identity's stores |
+| `src/Services/Identity/Identity.Api` | `POST /api/v1/auth/register` and `/login`, and the token service that signs the JWT |
+| `tests/Identity.UnitTests` | The token service, the register and login handlers, and a token signed by Identity accepted by the real bearer validation, refused for the wrong role, key, audience or age |
 | `tests/Catalog.UnitTests` | The domain rules and the use cases, with no container and no database |
 | `tests/Gateway.IntegrationTests` | The real gateway hosted in memory with both services replaced by a recording stub: routing, headers, error shape and limits, with no container |
 | `tests/Bookings.UnitTests`, `tests/BuildingBlocks.UnitTests` | Booking's domain and handlers; the shared kernel, the event contracts and the outbox |
@@ -186,7 +204,7 @@ belongs to Booking and the rest of `/screenings` to Catalog. ASP.NET Core alread
 reason could let a catch-all swallow the seat map. A test pins the split instead of forcing it.
 
 **The gateway rewrites nothing.** There are no transforms: the path, the request headers (`If-Match`,
-`Idempotency-Key`, `X-User-Id`) and the response headers (`ETag`, `Cache-Control`, `Location`) cross
+`Idempotency-Key`, `Authorization`) and the response headers (`ETag`, `Cache-Control`, `Location`) cross
 untouched. That is why the absolute `Location: /api/v1/bookings/{id}` a service returns is still correct
 at the gateway. A test asserts it, so adding a transform that drops one fails the build.
 
@@ -201,8 +219,8 @@ which for `POST /bookings` is exactly what the `Idempotency-Key` is for.
 covers every route, so one added later is protected before anyone remembers to name a policy on it; creating
 a booking has a smaller budget of its own, because a hot loop there consumes seats. A fixed window because
 it is the only algorithm that hands back an exact `Retry-After`; the price is a burst of up to twice the
-limit across a window edge. The client is the remote address today, because the only identity header is a
-stand-in any caller can set, and the token's subject replaces it in chapter 5. Startup refuses a booking
+limit across a window edge. The client is the token's subject when there is a valid one, so an account
+cannot multiply its budget by changing address, and the remote address otherwise. Startup refuses a booking
 budget that is not smaller than the global one, since that policy would never refuse anything.
 
 **No blanket retries at the gateway.** An automatic retry of `POST /bookings` can double-book unless the
@@ -222,10 +240,34 @@ a restart of every healthy instance. Both endpoints are mapped only in Developme
 AppHost sets `HealthChecks__Expose` on Catalog and Booking, because the gateway probes their `/health`: a
 probe that got a `404` would mark a perfectly healthy service dead.
 
-**Fixed local credentials.** The SA password and the JWT signing key are fixed development values declared
-in the AppHost. A generated password lives in user secrets, so clearing those while a data volume survives
+**Fixed local credentials.** The SA password, the JWT signing key and the seeded administrator's password are
+fixed development values declared in the AppHost. A generated password lives in user secrets, so clearing those while a data volume survives
 leaves SQL Server unable to start: the password no longer matches the persisted master database. These
 values never leave a developer machine.
+
+**Identity is two projects, not four.** ASP.NET Core Identity is the model there, so a Domain and an
+Application layer would only wrap `UserManager` in interfaces of our own. It is split in two rather than one
+because the migration service has to create the schema and seed the administrator without referencing a web
+application: `Identity.Persistence` is what it references, and `Identity.Api` is the HTTP face.
+
+**One signing key, validated four times.** Identity signs with HMAC-SHA256 and the gateway, Catalog and Booking
+each validate with the same key, handed to all four by the AppHost as `Jwt__Issuer`, `Jwt__Audience` and
+`Jwt__SigningKey`. Each process checks the options when it starts, so a missing or short key stops it with a
+sentence naming the fix instead of surfacing as a 401 on every request, and the committed development key is
+refused outside Development. A symmetric key is the right size for this exercise. The production evolution is
+RS256 with a JWKS endpoint: the validators would then hold only the public key, and the secret would never
+leave the issuer.
+
+**The gateway rejects early; the services decide.** The routes carry a policy, so an unauthenticated write
+never reaches a service, but the gateway is not a trust boundary: Catalog and Booking validate the token again,
+because a service reachable any other way must not assume somebody checked. Which booking a caller may see is
+decided in the use case, which has the loaded booking, and someone else's booking is a `404`, not a `403`, so
+ids cannot be probed. An administrator can read and cancel any booking but cannot book: booking needs the
+`Customer` role, everything else only a valid token.
+
+**Login never says which half was wrong.** An unknown email and a wrong password are the same `401` with the
+same message. The time taken still differs, because an unknown email skips the password hash; the gateway's
+rate limit is what bounds how much that can be used to probe.
 
 **The domain decides, the API only translates.** Every rule — no overlapping screenings, cleaning time
 between films, seats laid out by the auditorium itself — lives in an aggregate and is unit tested there. A
