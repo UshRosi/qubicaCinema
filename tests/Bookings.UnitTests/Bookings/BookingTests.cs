@@ -188,5 +188,65 @@ public sealed class BookingTests
         booking.IsOwnedBy(Guid.CreateVersion7()).ShouldBeFalse();
     }
 
+    [Fact]
+    public void Should_release_only_the_seats_of_the_cancelled_screening()
+    {
+        Booking booking = Book(_room.Claim(_tonight, "B1", "B2"), _room.Claim(_tomorrow, "C3"));
+
+        booking.ReleaseSeatsFor(_tonight.Id, _clock);
+
+        booking.Items.Where(item => item.ScreeningId == _tonight.Id).ShouldAllBe(item => !item.IsActive);
+        booking.Items.Where(item => item.ScreeningId == _tomorrow.Id).ShouldAllBe(item => item.IsActive);
+        booking.Status.ShouldBe(BookingStatus.Confirmed);
+        booking.Total.ShouldBe(Money.Of(7.00m, "EUR"));
+    }
+
+    [Fact]
+    public void Should_cancel_the_booking_when_its_only_screening_is_called_off()
+    {
+        Booking booking = Book(_room.Claim(_tonight, "B1", "B2"));
+
+        booking.ReleaseSeatsFor(_tonight.Id, _clock);
+
+        booking.Status.ShouldBe(BookingStatus.Cancelled);
+        booking.CancelledAt.ShouldBe(Now);
+    }
+
+    [Fact]
+    public void Should_release_seats_even_after_the_screening_time_has_passed()
+    {
+        // The cinema is calling it off, so there is no start time for the customer to be too late for.
+        Booking booking = Book(_room.Claim(_tonight, "B1"));
+        _clock.Advance(TimeSpan.FromHours(9));
+
+        Should.NotThrow(() => booking.ReleaseSeatsFor(_tonight.Id, _clock));
+
+        booking.Status.ShouldBe(BookingStatus.Cancelled);
+    }
+
+    [Fact]
+    public void Should_leave_a_booking_alone_when_it_holds_nothing_at_that_screening()
+    {
+        Booking booking = Book(_room.Claim(_tomorrow, "C3"));
+
+        booking.ReleaseSeatsFor(_tonight.Id, _clock);
+
+        booking.Status.ShouldBe(BookingStatus.Confirmed);
+        booking.ActiveItems.Count().ShouldBe(1);
+    }
+
+    [Fact]
+    public void Should_release_seats_only_once_when_the_event_is_redelivered()
+    {
+        Booking booking = Book(_room.Claim(_tonight, "B1"), _room.Claim(_tomorrow, "C3"));
+        booking.ReleaseSeatsFor(_tonight.Id, _clock);
+        DateTimeOffset firstRelease = booking.Items.First(item => item.ScreeningId == _tonight.Id).CancelledAt!.Value;
+
+        _clock.Advance(TimeSpan.FromMinutes(5));
+        booking.ReleaseSeatsFor(_tonight.Id, _clock);
+
+        booking.Items.First(item => item.ScreeningId == _tonight.Id).CancelledAt.ShouldBe(firstRelease);
+    }
+
     private Booking Book(params SeatClaim[] claims) => Booking.Create(_customer, claims, _clock);
 }
