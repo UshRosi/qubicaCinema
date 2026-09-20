@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The integration events that cross a service boundary: flat records of primitives with a stable wire
+    name. No dependencies, on purpose. A contract is read by a service that may be deployed later than the
+    one that wrote it, so nothing here may drag a domain type, a framework or a persistence concern onto
+    the wire.
+  -->
+
+</Project>
