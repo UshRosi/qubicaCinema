@@ -8,11 +8,15 @@ var options = builder.Configuration.GetSection(AppHostOptions.SectionName).Get<A
 
 var containerLifetime = options.PersistentContainers ? ContainerLifetime.Persistent : ContainerLifetime.Session;
 
+var administrator = builder.Configuration.GetSection(AdministratorSeedOptions.SectionName).Get<AdministratorSeedOptions>()
+                    ?? new AdministratorSeedOptions();
+
 // Both parameters are read from the Parameters section of configuration, so a developer overrides them
-// with user secrets or an environment variable rather than by editing code. The signing key is unused
-// until chapter 5, where Identity signs with it and every validator is handed the same value.
+// with user secrets or an environment variable rather than by editing code. The signing key is the one
+// secret of the solution: Identity signs with it and the gateway, Catalog and Booking each validate with it,
+// so all four are handed this same value through WithJwt.
 var sqlPassword = builder.AddParameter("sql-password", secret: true);
-builder.AddParameter("jwt-signing-key", secret: true);
+var jwtSigningKey = builder.AddParameter("jwt-signing-key", secret: true);
 
 var sql = builder.AddSqlServer("sql", sqlPassword)
     .WithLifetime(containerLifetime);
@@ -43,7 +47,11 @@ var migrations = builder.AddProject<Projects.MigrationService>("migrations")
     // A worker reads DOTNET_ENVIRONMENT, not ASPNETCORE_ENVIRONMENT, so without this line it would run as
     // Production and quietly lose the Development-only behaviour of the shared telemetry defaults.
     .WithEnvironment("DOTNET_ENVIRONMENT", builder.Environment.EnvironmentName)
-    .WithEnvironment("Seed__Enabled", options.SeedData.ToString());
+    .WithEnvironment("Seed__Enabled", options.SeedData.ToString())
+    // Handed over even when seeding is off: the options are validated when the worker starts, and the roles
+    // are created regardless, so a missing value would stop the migration for something nobody asked for.
+    .WithEnvironment("IdentitySeed__AdministratorEmail", administrator.AdministratorEmail)
+    .WithEnvironment("IdentitySeed__AdministratorPassword", administrator.AdministratorPassword);
 
 // WaitForCompletion, not WaitFor: the migration service is a task that ends, and the API must not start
 // against a schema that is still being applied. A non-zero exit code from it stops the API from starting
@@ -55,19 +63,31 @@ var migrations = builder.AddProject<Projects.MigrationService>("migrations")
 // HealthChecks__Expose: the gateway's active health check probes /health every ten seconds. ServiceDefaults
 // maps that endpoint in Development or when HealthChecks:Expose is set, and setting it here means the probe
 // behaves the same wherever this runs, instead of getting a 404 in Production and marking a healthy service dead.
+//
+// WithJwt on the four projects that touch a token. One parameter, four consumers: a mismatch anywhere would be
+// a 401 that says nothing about why, so the fan-out is a single visible line per project.
+var identity = builder.AddProject<Projects.Identity_Api>("identity")
+    .WithReference(identityDb)
+    .WaitForCompletion(migrations)
+    .WithHttpHealthCheck("/health")
+    .WithEnvironment("HealthChecks__Expose", "true")
+    .WithJwt(jwtSigningKey);
+
 var catalog = builder.AddProject<Projects.Catalog_Api>("catalog")
     .WithReference(catalogDb)
     .WithReference(rabbitmq).WaitFor(rabbitmq)
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health")
-    .WithEnvironment("HealthChecks__Expose", "true");
+    .WithEnvironment("HealthChecks__Expose", "true")
+    .WithJwt(jwtSigningKey);
 
 var booking = builder.AddProject<Projects.Bookings_Api>("booking")
     .WithReference(bookingDb)
     .WithReference(rabbitmq).WaitFor(rabbitmq)
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health")
-    .WithEnvironment("HealthChecks__Expose", "true");
+    .WithEnvironment("HealthChecks__Expose", "true")
+    .WithJwt(jwtSigningKey);
 
 // The one address a client needs. No WithReference: that would inject service-discovery keys the gateway does
 // not read. And no WaitFor: the gateway is deliberately independent of the services it fronts. That is the same
@@ -77,6 +97,8 @@ var booking = builder.AddProject<Projects.Bookings_Api>("booking")
 builder.AddProject<Projects.Gateway>("gateway")
     .WithProxyDestination("catalog", catalog)
     .WithProxyDestination("booking", booking)
+    .WithProxyDestination("identity", identity)
+    .WithJwt(jwtSigningKey)
     // The gateway's own health only. It never aggregates downstream health: that is what the per-cluster
     // active checks are for, and they degrade one route rather than the whole entry point.
     .WithHttpHealthCheck("/health")

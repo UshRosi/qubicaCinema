@@ -22,6 +22,9 @@ public enum DomainErrorKind
     /// <summary>The caller is known but is not allowed to do this.</summary>
     Forbidden,
 
+    /// <summary>The caller could not be identified: bad credentials. Distinct from <see cref="Forbidden"/>, which is a known caller refused.</summary>
+    Unauthenticated,
+
     /// <summary>
     /// The caller stated what it expected the current state to be, and it was wrong — a stale
     /// <c>If-Match</c>. Distinct from <see cref="Conflict"/>: retrying is pointless until the caller

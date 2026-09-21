@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Contracts.Catalog;
 using QubicaCinema.BuildingBlocks.EventBus.RabbitMQ;
 using QubicaCinema.Bookings.Api;
@@ -35,7 +36,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.AllowOutOfOrderMetadataProperties = true;
 });
 
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = AuthenticationProblemDetails.Describe);
 // Exception handlers run in registration order; each declines what it does not recognise.
 builder.Services.AddExceptionHandler<BadRequestExceptionHandler>();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
@@ -58,11 +59,21 @@ builder.Services.AddRabbitMqSubscriber(
         .Subscribe<ScreeningScheduled, ScreeningScheduledHandler>()
         .Subscribe<ScreeningRescheduled, ScreeningRescheduledHandler>()
         .Subscribe<ScreeningCancelled, ScreeningCancelledHandler>());
-builder.Services.AddStandInCurrentUser();
+
+// The caller is whoever the validated token says, and the use cases see only ICurrentUser. Booking validates
+// the token itself, as Catalog does: the gateway is not a trust boundary a service may rely on.
+builder.Services.AddCinemaAuthentication(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddCinemaAuthorization();
+builder.Services.AddCinemaCurrentUser();
 
 var app = builder.Build();
 
 app.UseExceptionHandler();
+// The 401 and the 403 leave the security middleware with no body; this gives them the same ProblemDetails
+// shape as every other error.
+app.UseStatusCodePages();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 

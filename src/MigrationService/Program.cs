@@ -1,5 +1,6 @@
 using QubicaCinema.Bookings.Infrastructure;
 using QubicaCinema.Catalog.Infrastructure;
+using QubicaCinema.Identity.Persistence;
 using QubicaCinema.MigrationService;
 using QubicaCinema.ServiceDefaults;
 
@@ -20,6 +21,12 @@ builder.Services.AddCatalogInfrastructure(builder.Configuration.RequireConnectio
     CatalogInfrastructureExtensions.DatabaseName));
 builder.Services.AddBookingsInfrastructure(builder.Configuration.RequireConnectionString(
     BookingsInfrastructureExtensions.DatabaseName));
+
+// Identity is the one service whose initializer is not inside AddXInfrastructure: the seed needs an
+// administrator's credentials, which no API should have to be given, so it is registered here alone.
+builder.Services.AddIdentityPersistence(builder.Configuration.RequireConnectionString(
+    IdentityPersistenceExtensions.DatabaseName));
+builder.Services.AddIdentityDatabaseInitializer(builder.Configuration.GetSection(IdentitySeedOptions.SectionName));
 
 builder.Services.AddHostedService<DatabaseMigrationWorker>();
 

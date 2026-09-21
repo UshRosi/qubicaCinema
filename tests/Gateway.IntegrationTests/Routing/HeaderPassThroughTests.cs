@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
+using QubicaCinema.BuildingBlocks.Application.Security;
 using QubicaCinema.Gateway.IntegrationTests.Fixtures;
 
 namespace QubicaCinema.Gateway.IntegrationTests.Routing;
@@ -15,21 +16,21 @@ public sealed class HeaderPassThroughTests
     {
         await using var factory = new GatewayFactory();
         using var client = factory.CreateClient();
+        string token = TestTokens.For(TestIds.Customer, [CinemaRoles.Customer]);
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/bookings")
         {
             Content = new StringContent("{}", Encoding.UTF8, "application/json"),
         };
         request.Headers.Add("Idempotency-Key", "7d1c4e0a-6b0e-4f0e-9d6b-2f7f5f7f0a11");
-        request.Headers.Add("X-User-Id", "0199a0c0-0000-7000-8000-00000000c0de");
-        request.Headers.Add("X-User-Role", "Admin");
+        request.Headers.Add("Authorization", $"Bearer {token}");
         request.Headers.TryAddWithoutValidation("If-Match", "\"abc\"");
 
         await client.SendAsync(request, TestContext.Current.CancellationToken);
 
         var forwarded = factory.Downstream.Requests.ShouldHaveSingleItem();
         forwarded.Header("Idempotency-Key").ShouldBe("7d1c4e0a-6b0e-4f0e-9d6b-2f7f5f7f0a11");
-        forwarded.Header("X-User-Id").ShouldBe("0199a0c0-0000-7000-8000-00000000c0de");
-        forwarded.Header("X-User-Role").ShouldBe("Admin");
+        // The token itself travels on: each service validates it again, so the gateway must not consume it.
+        forwarded.Header("Authorization").ShouldBe($"Bearer {token}");
         forwarded.Header("If-Match").ShouldBe("\"abc\"");
         forwarded.Header("Content-Type").ShouldNotBeNull().ShouldStartWith("application/json");
     }

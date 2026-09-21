@@ -1,4 +1,5 @@
 using System.Net;
+using QubicaCinema.BuildingBlocks.Application.Security;
 using QubicaCinema.Gateway.IntegrationTests.Fixtures;
 
 namespace QubicaCinema.Gateway.IntegrationTests.Routing;
@@ -10,6 +11,8 @@ namespace QubicaCinema.Gateway.IntegrationTests.Routing;
 public sealed class RoutingTests
 {
     [Theory]
+    [InlineData("POST", "/api/v1/auth/login", GatewayFactory.IdentityHost)]
+    [InlineData("POST", "/api/v1/auth/register", GatewayFactory.IdentityHost)]
     [InlineData("GET", "/api/v1/movies", GatewayFactory.CatalogHost)]
     [InlineData("GET", "/api/v1/movies?page=2&pageSize=10", GatewayFactory.CatalogHost)]
     [InlineData("GET", $"/api/v1/movies/{TestIds.Movie}", GatewayFactory.CatalogHost)]
@@ -29,7 +32,9 @@ public sealed class RoutingTests
         string expectedHost)
     {
         await using var factory = new GatewayFactory();
-        using var client = factory.CreateClient();
+        // Holds both roles so that no route's policy stands between a path and its service: which policy
+        // guards which route is AuthorizationTests's subject, and this is only about where a path goes.
+        using var client = factory.CreateClientFor(TestIds.Administrator, CinemaRoles.Admin, CinemaRoles.Customer);
 
         using var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), path), TestContext.Current.CancellationToken);
 

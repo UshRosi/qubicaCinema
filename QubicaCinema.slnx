@@ -16,6 +16,7 @@
     <Project Path="tests/Bookings.UnitTests/Bookings.UnitTests.csproj" />
     <Project Path="tests/Catalog.UnitTests/Catalog.UnitTests.csproj" />
     <Project Path="tests/Gateway.IntegrationTests/Gateway.IntegrationTests.csproj" />
+    <Project Path="tests/Identity.UnitTests/Identity.UnitTests.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AppHost/AppHost.csproj" />
@@ -29,6 +30,10 @@
     <Project Path="src/Services/Bookings/Bookings.Domain/Bookings.Domain.csproj" />
     <Project Path="src/Services/Bookings/Bookings.Infrastructure/Bookings.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Identity/">
+    <Project Path="src/Services/Identity/Identity.Api/Identity.Api.csproj" />
+    <Project Path="src/Services/Identity/Identity.Persistence/Identity.Persistence.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Catalog/">
     <Project Path="src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" />
     <Project Path="src/Services/Catalog/Catalog.Application/Catalog.Application.csproj" />
@@ -38,6 +43,7 @@
   <Folder Name="/src/BuildingBlocks/">
     <Project Path="src/BuildingBlocks/BuildingBlocks.Api/BuildingBlocks.Api.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+    <Project Path="src/BuildingBlocks/BuildingBlocks.Authentication/BuildingBlocks.Authentication.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.Contracts/BuildingBlocks.Contracts.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.Domain/BuildingBlocks.Domain.csproj" />
     <Project Path="src/BuildingBlocks/BuildingBlocks.EventBus/BuildingBlocks.EventBus.csproj" />

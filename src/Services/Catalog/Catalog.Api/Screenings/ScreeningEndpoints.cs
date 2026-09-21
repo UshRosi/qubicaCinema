@@ -1,6 +1,7 @@
 using QubicaCinema.BuildingBlocks.Api.Concurrency;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Paging;
+using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Api.Validation;
 using QubicaCinema.BuildingBlocks.Application.Results;
 using QubicaCinema.Catalog.Application.Screenings;
@@ -13,6 +14,7 @@ using QubicaCinema.Catalog.Application.Screenings.ScheduleScreening;
 namespace QubicaCinema.Catalog.Api.Screenings;
 
 /// <summary>The programme: <c>/api/v1/screenings</c>.</summary>
+/// <remarks>Anyone may read it; only an administrator may change it.</remarks>
 internal sealed class ScreeningEndpoints : IEndpointModule
 {
     public static void Map(IEndpointRouteBuilder endpoints)
@@ -27,12 +29,14 @@ internal sealed class ScreeningEndpoints : IEndpointModule
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         screenings.MapPost("/", ScheduleAsync)
+            .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<ScheduleScreeningRequest>()
             .WithSummary("Puts a film on the programme, if the auditorium is free.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         screenings.MapPut("/{id:guid}", RescheduleAsync)
+            .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<RescheduleScreeningRequest>()
             .RequiringIfMatch()
             .WithSummary("Moves a screening or changes its price.")
@@ -42,6 +46,7 @@ internal sealed class ScreeningEndpoints : IEndpointModule
         // A cancelled screening is still readable, and bookings still point at it, so DELETE would promise
         // something this service deliberately does not do. The cancellation is its own sub-resource.
         screenings.MapPost("/{id:guid}/cancellation", CancelAsync)
+            .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<CancelScreeningRequest>()
             .WithSummary("Calls a screening off. Asking twice is not an error.")
             .ProducesProblem(StatusCodes.Status404NotFound)

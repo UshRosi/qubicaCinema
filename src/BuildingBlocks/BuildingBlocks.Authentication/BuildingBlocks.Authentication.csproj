@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    How a token is checked and what a token may do: the options, the bearer configuration, the policies and
+    the ICurrentUser that reads the validated principal. Every process that accepts a token references this
+    project, which is what makes "one signing key, four validators" one piece of code rather than four copies.
+
+    Deliberately not part of ServiceDefaults. That project is platform plumbing (telemetry, health) and every
+    process needs it; this one is a security concern with its own options, and the gateway's policy set is not
+    a service's. Identity references it too, but only for the shared options and claim names.
+  -->
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../BuildingBlocks.Api/BuildingBlocks.Api.csproj" />
+    <ProjectReference Include="../BuildingBlocks.Application/BuildingBlocks.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The validator's limits and the bearer configuration are tested directly, not only through HTTP. -->
+    <InternalsVisibleTo Include="QubicaCinema.BuildingBlocks.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
+</Project>

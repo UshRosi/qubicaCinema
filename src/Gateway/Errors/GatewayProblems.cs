@@ -1,4 +1,5 @@
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Authentication;
 
 namespace QubicaCinema.Gateway.Errors;
 
@@ -18,6 +19,10 @@ internal static class GatewayProblems
 {
     internal static void Describe(ProblemDetailsContext context)
     {
+        // The 401 and the 403 are the security middleware's, and the services word them the same way, so the
+        // wording lives once in BuildingBlocks.Authentication rather than in a second copy here.
+        AuthenticationProblemDetails.Describe(context);
+
         if (Describe(context.HttpContext.Response.StatusCode) is not var (type, title, detail))
         {
             return;

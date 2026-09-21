@@ -17,6 +17,8 @@
       declared once for the whole solution. A second copy here is how two vocabularies start.
     -->
     <ProjectReference Include="../BuildingBlocks/BuildingBlocks.Api/BuildingBlocks.Api.csproj" />
+    <!-- The same validation the services do: one signing key, one piece of code that checks it. -->
+    <ProjectReference Include="../BuildingBlocks/BuildingBlocks.Authentication/BuildingBlocks.Authentication.csproj" />
     <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
 

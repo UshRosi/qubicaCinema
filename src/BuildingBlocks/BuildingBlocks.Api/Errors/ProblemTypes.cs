@@ -61,6 +61,6 @@ public static class ProblemTypes
     /// <summary>The service did not answer inside the gateway's budget. The request may still have run.</summary>
     public const string UpstreamTimeout = $"{Base}upstream-timeout";
 
-    /// <summary>The caller must authenticate. The gateway produces this from chapter 5.</summary>
+    /// <summary>The caller must authenticate: no token, a bad token, or wrong credentials.</summary>
     public const string Unauthenticated = $"{Base}unauthenticated";
 }
