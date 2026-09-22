@@ -18,7 +18,8 @@ The solution is built chapter by chapter, and each chapter ends with commits tha
 | 4 | YARP gateway: routing, rate limiting, one error shape | done |
 | 5 | Identity and JWT: register, log in, roles, one signing key, protected routes | done |
 | 6 | API documentation: an OpenAPI document per service, one reference page at the gateway, `.http` samples | done |
-| 7–9 | Tests, CI, final polish | planned |
+| 7 | Tests: service integration against real SQL Server and RabbitMQ, a handful end to end through the whole topology | done |
+| 8–9 | CI, final polish | planned |
 
 ## Prerequisites
 
@@ -35,7 +36,7 @@ CLI does not have to be installed.
 ```bash
 dotnet tool restore     # dotnet-ef, for adding migrations
 dotnet build            # warnings are errors
-dotnet test             # no Docker needed: the unit tests touch no infrastructure
+dotnet test             # Docker running: the integration and end-to-end tiers start real containers
 dotnet run --project src/AppHost
 ```
 
@@ -182,6 +183,8 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | `tests/Catalog.UnitTests` | The domain rules and the use cases, with no container and no database |
 | `tests/Gateway.IntegrationTests` | The real gateway hosted in memory with both services replaced by a recording stub: routing, headers, error shape and limits, with no container |
 | `tests/Bookings.UnitTests`, `tests/BuildingBlocks.UnitTests` | Booking's domain and handlers; the shared kernel, the event contracts and the outbox |
+| `tests/Services.IntegrationTests` | The three services hosted in memory against one real SQL Server and one real RabbitMQ: the filtered unique index rejecting a double booking, the outbox row written in the same transaction as the screening, a redelivered event leaving one inbox row |
+| `tests/EndToEndTests` | The whole topology, booted once through `Aspire.Hosting.Testing`: a token issued by Identity accepted by Booking through the gateway, the `/screenings` route split, and the booking flow end to end |
 
 Inside a service the dependencies point inwards: `Api → Application → Domain`, and `Infrastructure`
 implements the ports that `Application` declares. The domain projects reference nothing but
