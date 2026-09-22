@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using QubicaCinema.BuildingBlocks.Api.Concurrency;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Idempotency;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Api.Paging;
 using QubicaCinema.BuildingBlocks.Api.Validation;
 using QubicaCinema.BuildingBlocks.Authentication;
@@ -29,12 +31,15 @@ internal sealed class BookingEndpoints : IEndpointModule
 
         bookings.MapGet("/", ListAsync)
             .RequiringPolicy(CinemaPolicies.Authenticated)
+            .WithName("ListBookings")
             .WithSummary("Lists the caller's bookings, newest first. An administrator may list anyone's.")
             .ProducesProblem(StatusCodes.Status403Forbidden);
 
         bookings.MapGet("/{id:guid}", GetAsync)
             .RequiringPolicy(CinemaPolicies.Authenticated)
+            .WithName("GetBooking")
             .WithSummary("Returns one booking, with its ETag.")
+            .WithETagHeader()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         bookings.MapPost("/", CreateAsync)
@@ -42,7 +47,22 @@ internal sealed class BookingEndpoints : IEndpointModule
             // Validation first: a request that is wrong on its face must not claim an idempotency key.
             .ValidatingBody<CreateBookingRequest>()
             .RequiringIdempotencyKey<CreateBookingRequest>()
+            .WithName("CreateBooking")
             .WithSummary("Books chosen seats, or a number of seats, at one or more screenings.")
+            .WithLocationHeader()
+            .WithETagHeader(StatusCodes.Status201Created)
+            .WithRequestExample("chosen-seats", "Seats picked on the seat map", BookingExamples.ChosenSeats)
+            .WithRequestExample("by-quantity", "A number of seats, allocated for you", BookingExamples.ByQuantity)
+            .WithResponseExample(
+                StatusCodes.Status409Conflict,
+                "seats-taken",
+                "A chosen seat was booked by somebody else first",
+                BookingExamples.SeatsTaken)
+            .WithResponseExample(
+                StatusCodes.Status409Conflict,
+                "not-enough-adjacent-seats",
+                "No row has that many free seats together",
+                BookingExamples.NotEnoughAdjacentSeats)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -50,14 +70,18 @@ internal sealed class BookingEndpoints : IEndpointModule
         // do. The cancellation is its own sub-resource, and asking twice is not an error.
         bookings.MapPost("/{id:guid}/cancellation", CancelAsync)
             .RequiringPolicy(CinemaPolicies.Authenticated)
+            .WithName("CancelBooking")
             .WithSummary("Gives back every seat of a booking. The booking stays readable, as Cancelled.")
+            .WithETagHeader()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         bookings.MapPost("/{id:guid}/items/{itemId:guid}/cancellation", CancelItemAsync)
             .RequiringPolicy(CinemaPolicies.Authenticated)
+            .WithName("CancelBookingItem")
             .WithSummary("Gives back one seat. Giving back the last seat cancels the booking.")
+            .WithETagHeader()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed);
@@ -65,7 +89,7 @@ internal sealed class BookingEndpoints : IEndpointModule
 
     private static async Task<Ok<PagedResponse<BookingView>>> ListAsync(
         [AsParameters] PageQuery page,
-        Guid? userId,
+        [Description("Administrators only: list this user's bookings instead of the caller's.")] Guid? userId,
         GetBookingsHandler handler,
         CancellationToken cancellationToken)
     {

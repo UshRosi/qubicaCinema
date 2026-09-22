@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 namespace QubicaCinema.BuildingBlocks.Api.Paging;
 
 /// <summary>
@@ -14,10 +16,14 @@ namespace QubicaCinema.BuildingBlocks.Api.Paging;
 /// page 7", at the known cost of drifting while rows are inserted and of deep pages getting slower. The
 /// README names the trade-off.
 /// </para>
+/// <para>
+/// The names are spelled out because a positional record's parameters are PascalCase, and the OpenAPI document
+/// (and so a client generated from it) would otherwise advertise <c>Page</c> and <c>PageSize</c>.
+/// </para>
 /// </remarks>
 /// <param name="Page">The one-based page number, or null for the first page.</param>
 /// <param name="PageSize">How many items to return, or null for <see cref="DefaultSize"/>.</param>
-public sealed record PageQuery(int? Page, int? PageSize)
+public sealed record PageQuery([FromQuery(Name = "page")] int? Page, [FromQuery(Name = "pageSize")] int? PageSize)
 {
     /// <summary>How many items a page holds when the caller does not say.</summary>
     public const int DefaultSize = 20;

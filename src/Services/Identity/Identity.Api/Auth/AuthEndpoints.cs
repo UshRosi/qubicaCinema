@@ -13,11 +13,13 @@ internal sealed class AuthEndpoints : IEndpointModule
 
         auth.MapPost("/register", RegisterAsync)
             .ValidatingBody<RegisterRequest>()
+            .WithName("Register")
             .WithSummary("Creates a customer account.")
             .ProducesProblem(StatusCodes.Status409Conflict);
 
         auth.MapPost("/login", LoginAsync)
             .ValidatingBody<LoginRequest>()
+            .WithName("Login")
             .WithSummary("Exchanges an email and a password for a bearer token.")
             .ProducesProblem(StatusCodes.Status401Unauthorized);
     }
