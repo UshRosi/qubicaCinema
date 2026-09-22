@@ -5,7 +5,7 @@ name: CI
 # the push and once for the pull request — and this pipeline starts SQL Server twice per run as it is.
 on:
   push:
-    branches: [main]
+    branches: [main, build/ci]
   pull_request:
 
 # A second push to the same branch supersedes the first: the older run is cancelled rather than left
