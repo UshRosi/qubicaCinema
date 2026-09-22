@@ -69,7 +69,10 @@ builder.Services.AddRabbitMqEventBus(
     builder.Configuration.GetConnectionString(RabbitMqServiceCollectionExtensions.ConnectionName)
     ?? throw new InvalidOperationException(
         "The connection string 'rabbitmq' is missing. The AppHost supplies it as ConnectionStrings__rabbitmq."));
-builder.Services.AddCatalogOutboxPublisher();
+// An integration test sets this to false and pumps IOutboxProcessor by hand: with the background publisher
+// running, "the row is still unprocessed" would be a race against a timer instead of a deterministic assertion.
+builder.Services.AddCatalogOutboxPublisher(
+    runPublisher: builder.Configuration.GetValue("Messaging:RunOutboxPublisher", defaultValue: true));
 
 var app = builder.Build();
 
