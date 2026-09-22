@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Contracts.Catalog;
 using QubicaCinema.BuildingBlocks.EventBus.RabbitMQ;
@@ -66,6 +67,12 @@ builder.Services.AddCinemaAuthentication(builder.Configuration.GetSection(JwtOpt
 builder.Services.AddCinemaAuthorization();
 builder.Services.AddCinemaCurrentUser();
 
+// The service's own OpenAPI document. The gateway proxies it and serves one reference page for all three.
+builder.Services.AddCinemaOpenApi(
+    CinemaApiDocuments.Bookings,
+    "QubicaCinema Bookings",
+    "Seat availability and bookings: choose seats or ask for a number of seats, across one or several screenings, and cancel them again.");
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -76,6 +83,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapDefaultEndpoints();
+app.MapCinemaOpenApi();
 
 var api = app.MapGroup("/api/v1");
 

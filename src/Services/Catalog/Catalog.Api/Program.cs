@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.EventBus.RabbitMQ;
 using QubicaCinema.Catalog.Api;
@@ -49,6 +50,12 @@ builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddCinemaAuthentication(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddCinemaAuthorization();
 
+// The service's own OpenAPI document. The gateway proxies it and serves one reference page for all three.
+builder.Services.AddCinemaOpenApi(
+    CinemaApiDocuments.Catalog,
+    "QubicaCinema Catalog",
+    "The programme: films, screening rooms and screenings. Reading is open to everyone; changing the programme needs an administrator's token.");
+
 builder.Services.AddCatalogApplication();
 builder.Services.AddCatalogInfrastructure(
     builder.Configuration.GetConnectionString(CatalogInfrastructureExtensions.DatabaseName)
@@ -74,6 +81,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapDefaultEndpoints();
+app.MapCinemaOpenApi();
 
 // Versioned from the first commit: adding /v1 later would itself be the breaking change it is meant to
 // avoid, and the group costs one line.

@@ -71,6 +71,7 @@ var identity = builder.AddProject<Projects.Identity_Api>("identity")
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health")
     .WithEnvironment("HealthChecks__Expose", "true")
+    .WithApiDocumentation()
     .WithJwt(jwtSigningKey);
 
 var catalog = builder.AddProject<Projects.Catalog_Api>("catalog")
@@ -79,6 +80,7 @@ var catalog = builder.AddProject<Projects.Catalog_Api>("catalog")
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health")
     .WithEnvironment("HealthChecks__Expose", "true")
+    .WithApiDocumentation()
     .WithJwt(jwtSigningKey);
 
 var booking = builder.AddProject<Projects.Bookings_Api>("booking")
@@ -87,6 +89,7 @@ var booking = builder.AddProject<Projects.Bookings_Api>("booking")
     .WaitForCompletion(migrations)
     .WithHttpHealthCheck("/health")
     .WithEnvironment("HealthChecks__Expose", "true")
+    .WithApiDocumentation()
     .WithJwt(jwtSigningKey);
 
 // The one address a client needs. No WithReference: that would inject service-discovery keys the gateway does
@@ -99,6 +102,8 @@ builder.AddProject<Projects.Gateway>("gateway")
     .WithProxyDestination("booking", booking)
     .WithProxyDestination("identity", identity)
     .WithJwt(jwtSigningKey)
+    // The reference page at /docs, and the three documents it lists, which the gateway proxies.
+    .WithApiDocumentation()
     // The gateway's own health only. It never aggregates downstream health: that is what the per-cluster
     // active checks are for, and they degrade one route rather than the whole entry point.
     .WithHttpHealthCheck("/health")

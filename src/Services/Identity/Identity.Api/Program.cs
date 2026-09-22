@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
 using QubicaCinema.BuildingBlocks.Api.Errors;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.Identity.Api;
 using QubicaCinema.Identity.Api.Auth;
@@ -43,11 +44,18 @@ builder.Services.AddJwtOptions(builder.Configuration.GetSection(JwtOptions.Secti
 builder.Services.AddIdentityUseCases();
 builder.Services.AddIdentityValidators();
 
+// The service's own OpenAPI document. The gateway proxies it and serves one reference page for all three.
+builder.Services.AddCinemaOpenApi(
+    CinemaApiDocuments.Identity,
+    "QubicaCinema Identity",
+    "Accounts: register as a customer and exchange credentials for the bearer token every other call needs.");
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
 
 app.MapDefaultEndpoints();
+app.MapCinemaOpenApi();
 
 var api = app.MapGroup("/api/v1");
 
