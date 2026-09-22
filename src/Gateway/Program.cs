@@ -1,5 +1,6 @@
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.Gateway;
+using QubicaCinema.Gateway.Documentation;
 using QubicaCinema.Gateway.Errors;
 using QubicaCinema.Gateway.RateLimiting;
 using QubicaCinema.ServiceDefaults;
@@ -71,6 +72,9 @@ app.UseRequestTimeouts();
 // The gateway's own liveness and readiness. They answer for this process only: if a dead Catalog made the
 // gateway unhealthy, a load balancer would pull the gateway out and take /api/v1/bookings down with it.
 app.MapDefaultEndpoints();
+
+// The reference page for the three services. Its documents are proxied like any other route.
+app.MapApiReference();
 
 app.MapReverseProxy();
 

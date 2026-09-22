@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
 
