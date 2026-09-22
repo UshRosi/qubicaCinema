@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The full topology, booted once for the whole assembly: the AppHost itself, with a real SQL Server, a real
+    RabbitMQ and all four HTTP resources. What only this tier can prove: YARP's routing, a token minted by the
+    real Identity service being accepted by Booking, and an event actually crossing the broker end to end.
+    Everything else — the filtered unique index, the outbox, the inbox — is proven far more cheaply in
+    tests/Services.IntegrationTests, which is why there are only a handful of tests here.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/AppHost/AppHost.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+</Project>
