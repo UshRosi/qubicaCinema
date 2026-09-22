@@ -107,6 +107,9 @@ builder.AddProject<Projects.Gateway>("gateway")
     // The gateway's own health only. It never aggregates downstream health: that is what the per-cluster
     // active checks are for, and they degrade one route rather than the whole entry point.
     .WithHttpHealthCheck("/health")
+    // Without this, /health is mapped only in Development (ServiceDefaults' rule for the other three
+    // services too), so an end-to-end test run outside Development would see the probe hang forever.
+    .WithEnvironment("HealthChecks__Expose", "true")
     // The only resource a client outside the orchestrator is meant to reach.
     .WithExternalHttpEndpoints();
 

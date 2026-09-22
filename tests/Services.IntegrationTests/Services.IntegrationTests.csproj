@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The three APIs hosted in memory, each against its own database and one shared broker, all real
+    containers. This is where the guarantees a unit test cannot reach live: the filtered unique index that
+    stops a double booking, the outbox row written in the same transaction as the screening that caused it,
+    and the inbox primary key surviving a redelivery. One assembly, one SQL Server container and one
+    RabbitMQ container for all three services, rather than three of each — the machine this runs on does not
+    have room for three SQL Server containers at once, and one assembly is the same coverage for a third of
+    the cost. Web SDK because WebApplicationFactory needs the shared framework of the apps it hosts.
+  -->
+
+  <ItemGroup>
+    <!--
+      All three Api projects end their Program.cs with "public partial class Program;" in the global
+      namespace, so one assembly referencing all three cannot write the bare token Program (CS0433). Each
+      reference is aliased; only the three factory files under Fixtures/ say "extern alias" for it. Every
+      test in this project reaches the three services over HTTP and reads their JSON, so nothing else here
+      ever needs the alias.
+    -->
+    <ProjectReference Include="../../src/Services/Catalog/Catalog.Api/Catalog.Api.csproj" Aliases="catalog" />
+    <ProjectReference Include="../../src/Services/Bookings/Bookings.Api/Bookings.Api.csproj" Aliases="bookings" />
+    <ProjectReference Include="../../src/Services/Identity/Identity.Api/Identity.Api.csproj" Aliases="identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+</Project>
