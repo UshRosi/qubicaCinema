@@ -17,7 +17,8 @@ The solution is built chapter by chapter, and each chapter ends with commits tha
 | 3 | Event-driven integration over RabbitMQ: Catalog outbox, Booking inbox | done |
 | 4 | YARP gateway: routing, rate limiting, one error shape | done |
 | 5 | Identity and JWT: register, log in, roles, one signing key, protected routes | done |
-| 6–9 | API documentation, tests, CI, final polish | planned |
+| 6 | API documentation: an OpenAPI document per service, one reference page at the gateway, `.http` samples | done |
+| 7–9 | Tests, CI, final polish | planned |
 
 ## Prerequisites
 
@@ -82,6 +83,38 @@ curl -i -X POST "$GW/api/v1/bookings" -H "Authorization: Bearer $CUSTOMER" \
      -d '{"items":[{"screeningId":"{id}","selection":{"mode":"quantity","quantity":2}}]}'
 ```
 
+### API reference
+
+Start the AppHost and open `/docs` on the gateway (the port is the `gateway` endpoint in the dashboard). One
+page lists every endpoint of the three services, with a selector between them. To use it without `curl`:
+
+1. Open **Identity** in the selector, run `POST /api/v1/auth/login` with the seeded administrator or a customer
+   you registered, and copy the `accessToken`.
+2. Paste it into the **Authorize** button. It is kept across a refresh and sent on every request that needs it.
+3. Book from the page: pick a screening under **Catalog**, read its seats under **Bookings**, and create the
+   booking. The request body has a ready-made example for choosing seats and one for asking for a quantity; the
+   `409` has one for a taken seat and one for a row that is too short.
+
+Requests made from the page go through the gateway, so the rate limit and the token check apply to them as to
+any client. The documents themselves are `/openapi/catalog.json`, `/openapi/bookings.json` and
+`/openapi/identity.json`. The brief says "es. Swagger": this is an OpenAPI reference (Scalar, which is MIT and
+ships its script inside the package, so it needs no internet), and any Swagger tool can read the same
+documents.
+
+`docs/api/` has two runnable files in the order a reviewer would try things: `booking-walkthrough.http`
+(register, log in, read the seat map, book by seat and by quantity, hit the `409`, cancel) and
+`catalog-admin.http` (add a film, edit it with `If-Match`, schedule and cancel a screening). They run in VS
+Code with the REST Client extension and in Rider, and each request reads what it needs from an earlier
+response. Put the gateway's port in the `@gateway` variable at the top.
+
+**A known Scalar bug affects the two `If-Match` operations from the page itself** (`PUT /movies/{id}` and
+`PUT /screenings/{id}`): the `If-Match` row can show a value and still not send it, because the row's own
+checkbox stays unticked even though it looks filled ([scalar/scalar#4307](https://github.com/scalar/scalar/issues/4307),
+[scalar/scalar#10255](https://github.com/scalar/scalar/pull/10255), merged the day this chapter was written). The
+symptom is the client-side "Path parameters must have values" message before anything is sent. Workaround: after
+pasting the ETag, untick and retick the header's checkbox. The `.http` files above are not affected and are the
+more reliable way to try these two calls.
+
 Migrations are added through the API project, so the tooling builds the real host and reads the same
 configuration the service does; outside the AppHost the connection string comes from
 `appsettings.Development.json`, overridable with user secrets or `ConnectionStrings__catalogdb`:
@@ -127,7 +160,7 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | Project | Role |
 |---|---|
 | `src/AppHost` | The only project that references Aspire. Declares SQL Server, RabbitMQ and the migration service |
-| `src/Gateway` | The YARP reverse proxy: the routing table is `appsettings.json`, and the code is the rate limiter and the mapping of gateway errors to ProblemDetails. No Aspire package |
+| `src/Gateway` | The YARP reverse proxy: the routing table is `appsettings.json`, and the code is the rate limiter, the mapping of gateway errors to ProblemDetails and the API reference page. No Aspire package |
 | `src/ServiceDefaults` | OpenTelemetry and health-check plumbing shared by every process. No Aspire package |
 | `src/MigrationService` | Applies every schema once and exits; a non-zero exit code stops the services from starting |
 | `src/BuildingBlocks/BuildingBlocks.Domain` | `Entity`, `AggregateRoot`, `IDomainEvent`, `IUnitOfWork`, `DomainException`. No dependencies |
@@ -137,7 +170,7 @@ Services never call each other over HTTP: everything that crosses a boundary is 
 | `src/BuildingBlocks/BuildingBlocks.EventBus.RabbitMQ` | The publisher, the consumer, the topology and the health check, written on the official `RabbitMQ.Client` |
 | `src/BuildingBlocks/BuildingBlocks.Application` | `ICommandHandler`, `IQueryHandler`, `PagedResult`, `Versioned`: the shapes every use case is written in |
 | `src/BuildingBlocks/BuildingBlocks.Authentication` | `JwtOptions` and its validator, the bearer configuration, the `Admin` / `Customer` / `authenticated` policies and the `ICurrentUser` that reads the validated token. Referenced by the gateway, Catalog, Booking and Identity |
-| `src/BuildingBlocks/BuildingBlocks.Api` | Endpoint modules, the one ProblemDetails mapping, paging, validation and `If-Match` filters |
+| `src/BuildingBlocks/BuildingBlocks.Api` | Endpoint modules, the one ProblemDetails mapping, paging, validation and `If-Match` filters, and the OpenAPI document every service publishes |
 | `src/Services/Catalog/Catalog.Domain` | `Movie`, `Auditorium` with its `Seat`s, `Screening`; `Money`, `TimeSlot`, `SeatPosition` |
 | `src/Services/Catalog/Catalog.Application` | One folder per use case (command or query, and its handler), and one port per repository and read model |
 | `src/Services/Catalog/Catalog.Infrastructure` | EF Core mappings, migrations, repositories, read-side projections, the seed |
@@ -207,6 +240,18 @@ reason could let a catch-all swallow the seat map. A test pins the split instead
 `Idempotency-Key`, `Authorization`) and the response headers (`ETag`, `Cache-Control`, `Location`) cross
 untouched. That is why the absolute `Location: /api/v1/bookings/{id}` a service returns is still correct
 at the gateway. A test asserts it, so adding a transform that drops one fails the build.
+
+**The documents are the services' own; the gateway only shows them.** Each service builds its OpenAPI
+document with the framework's `Microsoft.AspNetCore.OpenApi`, and the gateway proxies them at the same path, so
+it needs no knowledge of any schema and no transform. What a Minimal API signature cannot say is declared where
+it is true: the extension that adds the `Idempotency-Key` or `If-Match` filter also documents that header, so
+the document cannot omit what the filter demands. The documents list no server, which makes "Try it" send its
+requests to wherever the document was fetched from, the gateway, instead of straight to a service. The seat
+selection is described with the `mode` discriminator and its mapping, which is what a client generator keys on
+(the framework writes it as `anyOf` rather than `oneOf`). A `409` from `POST /bookings` has two different
+bodies under one `type` URI, so it is documented as two named examples rather than as a schema that could
+describe only one. The documents are on in Development, or wherever `OpenApi:Expose` is set, like the health
+endpoints.
 
 **One error shape, from whoever answers.** A status the gateway produces itself (`404` for an unrouted path,
 `429`, `502`, `503`, `504`) is turned into the same RFC 9457 ProblemDetails, with `type` URIs from the same

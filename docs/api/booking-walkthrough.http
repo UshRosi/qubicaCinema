@@ -1,0 +1,121 @@
+### QubicaCinema — a customer books seats, end to end.
+###
+### Run the requests top to bottom (VS Code "REST Client", or the HTTP client built into Rider).
+### Each one reads what it needs from an earlier response, so nothing has to be copied by hand.
+###
+### Aspire assigns the gateway's port on every run: read the `gateway` endpoint in the dashboard and put it here.
+@gateway = http://localhost:5100
+
+# The customer used below. Registering the same address twice is a 409, which is correct: on a second run,
+# skip the register request and go straight to the login.
+@email = ada@example.com
+@password = Correct-horse-1
+
+
+### 1. Register a customer. There is no way to register as an administrator.
+POST {{gateway}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "firstName": "Ada",
+  "lastName": "Lovelace"
+}
+
+
+### 2. Log in. The token is used by every request that follows.
+# @name login
+POST {{gateway}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+
+### 3. The programme. Public: no token needed. The first screening is used below.
+# @name programme
+@token = {{login.response.body.$.accessToken}}
+GET {{gateway}}/api/v1/screenings?pageSize=5
+
+
+### 4. The seat map of that screening. Cache-Control: no-store — it is a snapshot, not a hold.
+# @name seatMap
+@screeningId = {{programme.response.body.$.items[0].id}}
+GET {{gateway}}/api/v1/screenings/{{screeningId}}/seats
+
+
+### 5. Book two chosen seats. The Idempotency-Key is generated once per logical request: sending the same
+### key and body again returns this response instead of booking twice. (Rider spells the variable {{$uuid}}.)
+# @name bookBySeat
+@seatA = {{seatMap.response.body.$.seats[0].seatId}}
+@seatB = {{seatMap.response.body.$.seats[1].seatId}}
+POST {{gateway}}/api/v1/bookings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "items": [
+    {
+      "screeningId": "{{screeningId}}",
+      "selection": { "mode": "seats", "seatIds": ["{{seatA}}", "{{seatB}}"] }
+    }
+  ]
+}
+
+
+### 6. Book by quantity: ask for three seats and let the system allocate them side by side.
+@bookingId = {{bookBySeat.response.body.$.id}}
+POST {{gateway}}/api/v1/bookings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "items": [
+    {
+      "screeningId": "{{screeningId}}",
+      "selection": { "mode": "quantity", "quantity": 3 }
+    }
+  ]
+}
+
+
+### 7. Try to book the first seat again. Expect 409, with the seat ids that were refused in `unavailableSeatIds`.
+POST {{gateway}}/api/v1/bookings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Idempotency-Key: {{$guid}}
+
+{
+  "items": [
+    {
+      "screeningId": "{{screeningId}}",
+      "selection": { "mode": "seats", "seatIds": ["{{seatA}}"] }
+    }
+  ]
+}
+
+
+### 8. Read the booking back. Note its ETag.
+GET {{gateway}}/api/v1/bookings/{{bookingId}}
+Authorization: Bearer {{token}}
+
+
+### 9. Give back one seat. Cancelling the last seat of a booking cancels the booking.
+### (A cancellation is a POST to a sub-resource, not a DELETE: the booking stays readable afterwards.)
+POST {{gateway}}/api/v1/bookings/{{bookingId}}/items/{{bookBySeat.response.body.$.items[0].id}}/cancellation
+Authorization: Bearer {{token}}
+
+
+### 10. Cancel what is left of the booking. Asking twice is not an error.
+POST {{gateway}}/api/v1/bookings/{{bookingId}}/cancellation
+Authorization: Bearer {{token}}
+
+
+### 11. Read it again: status Cancelled, and the seats are free on the seat map once more.
+GET {{gateway}}/api/v1/bookings/{{bookingId}}
+Authorization: Bearer {{token}}

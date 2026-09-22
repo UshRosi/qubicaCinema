@@ -1,0 +1,105 @@
+### QubicaCinema — an administrator changes the programme.
+###
+### Run the requests top to bottom (VS Code "REST Client", or the HTTP client built into Rider).
+###
+### Aspire assigns the gateway's port on every run: read the `gateway` endpoint in the dashboard and put it here.
+@gateway = http://localhost:5100
+
+# The seeded administrator (local development values, set in src/AppHost/appsettings.json).
+@adminEmail = admin@qubicacinema.local
+@adminPassword = Admin!Cinema1
+
+
+### 1. Log in as the administrator.
+# @name login
+POST {{gateway}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+
+### 2. Add a film. 201 with a Location and no body.
+# @name createMovie
+@token = {{login.response.body.$.accessToken}}
+POST {{gateway}}/api/v1/movies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "The Long Take",
+  "description": "A single shot, ninety minutes, one room.",
+  "durationMinutes": 90,
+  "genre": "Drama",
+  "ageRating": "Teen"
+}
+
+
+### 3. Read it back through the Location the previous response gave. Note the ETag: an edit needs it.
+# @name movie
+GET {{gateway}}{{createMovie.response.headers.Location}}
+
+
+### 4. Correct the film. If-Match must carry the ETag of the version being replaced; without it this is a 428,
+### and with a stale one it is a 412.
+PUT {{gateway}}{{createMovie.response.headers.Location}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+If-Match: {{movie.response.headers.ETag}}
+
+{
+  "title": "The Long Take",
+  "description": "A single shot, ninety minutes, one room. Restored print.",
+  "durationMinutes": 90,
+  "genre": "Drama",
+  "ageRating": "Teen"
+}
+
+
+### 5. Pick a room: the first auditorium in the list.
+# @name auditoriums
+GET {{gateway}}/api/v1/auditoriums
+
+
+### 6. Schedule the film. 409 if the room is not free for the whole running time; on a second run, change
+### startsAt to another evening.
+# @name schedule
+POST {{gateway}}/api/v1/screenings
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "movieId": "{{movie.response.body.$.id}}",
+  "auditoriumId": "{{auditoriums.response.body.$.items[0].id}}",
+  "startsAt": "2031-03-14T20:00:00Z",
+  "priceAmount": 9.50,
+  "priceCurrency": "EUR"
+}
+
+
+### 7. Read the screening. Its seat map appears in Booking within a second or so, through the event bus.
+# @name screening
+GET {{gateway}}{{schedule.response.headers.Location}}
+
+
+### 8. Move it an hour later. Same If-Match rule as the film.
+PUT {{gateway}}{{schedule.response.headers.Location}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+If-Match: {{screening.response.headers.ETag}}
+
+{
+  "startsAt": "2031-03-14T21:00:00Z",
+  "priceAmount": 9.50,
+  "priceCurrency": "EUR"
+}
+
+
+### 9. Call the screening off. A screening is cancelled, never deleted, and every seat booked for it is released.
+POST {{gateway}}{{schedule.response.headers.Location}}/cancellation
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "reason": "projector failure" }
