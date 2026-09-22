@@ -485,7 +485,10 @@ $RECYCLE.BIN/
 # the deliverable. README.md is, so it stays tracked.
 *.md
 !README.md
-docs/
+# docs/* and not docs/: git does not descend into an ignored directory, so a re-include only works on
+# its contents. docs/api holds the runnable .http samples and is part of the deliverable.
+docs/*
+!docs/api/
 
 # Local editor / tooling state
 .vscode/

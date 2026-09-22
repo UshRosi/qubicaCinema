@@ -1,4 +1,5 @@
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Api.Paging;
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Api.Validation;
@@ -23,16 +24,20 @@ internal sealed class AuditoriumEndpoints : IEndpointModule
         RouteGroupBuilder auditoriums = endpoints.MapGroup("/auditoriums").WithTags("Auditoriums");
 
         auditoriums.MapGet("/", ListAsync)
+            .WithName("ListAuditoriums")
             .WithSummary("Lists the screening rooms, without their seat maps.");
 
         auditoriums.MapGet("/{id:guid}", GetAsync)
+            .WithName("GetAuditorium")
             .WithSummary("Returns one room and every seat in it.")
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         auditoriums.MapPost("/", CreateAsync)
             .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<CreateAuditoriumRequest>()
+            .WithName("CreateAuditorium")
             .WithSummary("Opens a room and lays out its grid of seats.")
+            .WithLocationHeader()
             .ProducesProblem(StatusCodes.Status409Conflict);
     }
 

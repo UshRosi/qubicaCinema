@@ -49,6 +49,7 @@ internal sealed class GatewayFactory(IReadOnlyDictionary<string, string?>? setti
 
                 // Mapped in Development anyway; stated here so the tests do not depend on the environment.
                 ["HealthChecks:Expose"] = "true",
+                ["OpenApi:Expose"] = "true",
             };
 
             foreach (var (key, value) in settings ?? new Dictionary<string, string?>())

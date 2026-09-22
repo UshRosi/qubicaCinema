@@ -30,6 +30,18 @@ internal static class AppHostExtensions
             .WithEnvironment("Jwt__SigningKey", signingKey);
 
     /// <summary>
+    /// Lets a process publish its OpenAPI document (a service) or the reference page (the gateway).
+    /// </summary>
+    /// <remarks>
+    /// Both are on by default in Development only, the way <c>/health</c> is. The AppHost sets the key
+    /// explicitly, as it does for health, so what a run publishes does not depend on which environment the
+    /// launch profile happens to name.
+    /// </remarks>
+    internal static IResourceBuilder<TProject> WithApiDocumentation<TProject>(this IResourceBuilder<TProject> project)
+        where TProject : IResourceWithEnvironment =>
+        project.WithEnvironment("OpenApi__Expose", "true");
+
+    /// <summary>
     /// Points one YARP cluster at a service by writing the configuration key the gateway already declares.
     /// </summary>
     /// <remarks>

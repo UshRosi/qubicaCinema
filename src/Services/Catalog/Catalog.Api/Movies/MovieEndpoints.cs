@@ -1,5 +1,6 @@
 using QubicaCinema.BuildingBlocks.Api.Concurrency;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Api.Paging;
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Api.Validation;
@@ -23,21 +24,27 @@ internal sealed class MovieEndpoints : IEndpointModule
         RouteGroupBuilder movies = endpoints.MapGroup("/movies").WithTags("Movies");
 
         movies.MapGet("/", ListAsync)
+            .WithName("ListMovies")
             .WithSummary("Lists the films in the catalogue.");
 
         movies.MapGet("/{id:guid}", GetAsync)
+            .WithName("GetMovie")
             .WithSummary("Returns one film, with the ETag needed to edit it.")
+            .WithETagHeader()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         movies.MapPost("/", CreateAsync)
             .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<SaveMovieRequest>()
-            .WithSummary("Adds a film to the catalogue.");
+            .WithName("CreateMovie")
+            .WithSummary("Adds a film to the catalogue.")
+            .WithLocationHeader();
 
         movies.MapPut("/{id:guid}", UpdateAsync)
             .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<SaveMovieRequest>()
             .RequiringIfMatch()
+            .WithName("UpdateMovie")
             .WithSummary("Corrects a film, provided nobody has edited it since it was read.")
             .ProducesProblem(StatusCodes.Status404NotFound);
     }

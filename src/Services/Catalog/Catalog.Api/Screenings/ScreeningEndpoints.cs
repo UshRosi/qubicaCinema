@@ -1,5 +1,6 @@
 using QubicaCinema.BuildingBlocks.Api.Concurrency;
 using QubicaCinema.BuildingBlocks.Api.Endpoints;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Api.Paging;
 using QubicaCinema.BuildingBlocks.Authentication;
 using QubicaCinema.BuildingBlocks.Api.Validation;
@@ -22,16 +23,21 @@ internal sealed class ScreeningEndpoints : IEndpointModule
         RouteGroupBuilder screenings = endpoints.MapGroup("/screenings").WithTags("Screenings");
 
         screenings.MapGet("/", ListAsync)
+            .WithName("ListScreenings")
             .WithSummary("Lists the programme, filtered and ordered.");
 
         screenings.MapGet("/{id:guid}", GetAsync)
+            .WithName("GetScreening")
             .WithSummary("Returns one screening, with the ETag needed to edit it.")
+            .WithETagHeader()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         screenings.MapPost("/", ScheduleAsync)
             .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<ScheduleScreeningRequest>()
+            .WithName("ScheduleScreening")
             .WithSummary("Puts a film on the programme, if the auditorium is free.")
+            .WithLocationHeader()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
@@ -39,6 +45,7 @@ internal sealed class ScreeningEndpoints : IEndpointModule
             .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<RescheduleScreeningRequest>()
             .RequiringIfMatch()
+            .WithName("RescheduleScreening")
             .WithSummary("Moves a screening or changes its price.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
@@ -48,6 +55,7 @@ internal sealed class ScreeningEndpoints : IEndpointModule
         screenings.MapPost("/{id:guid}/cancellation", CancelAsync)
             .RequiringPolicy(CinemaPolicies.Admin)
             .ValidatingBody<CancelScreeningRequest>()
+            .WithName("CancelScreening")
             .WithSummary("Calls a screening off. Asking twice is not an error.")
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);

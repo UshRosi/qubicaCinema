@@ -8,6 +8,10 @@
     <File Path="README.md" />
     <File Path="global.json" />
   </Folder>
+  <Folder Name="/Solution Items/docs/api/">
+    <File Path="docs/api/booking-walkthrough.http" />
+    <File Path="docs/api/catalog-admin.http" />
+  </Folder>
   <Folder Name="/Solution Items/tests/">
     <File Path="tests/Directory.Build.props" />
   </Folder>

@@ -27,6 +27,8 @@
   <ItemGroup Label="Api">
     <!-- Apache-2.0, verified in the 12.1.1 nuspec; a different maintainer from MediatR and AutoMapper. -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <!-- MIT, part of ASP.NET Core. Builds each service's OpenAPI document; ships in step with the framework. -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(MicrosoftVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Authentication">
@@ -43,6 +45,11 @@
       cluster, so service discovery would be dead code that looks like protection.
     -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
+    <!--
+      MIT, verified in the 2.17.7 nuspec; targets net10.0. The reference UI for the OpenAPI documents. Its
+      JavaScript bundle is an embedded resource, so the page works with no CDN and no internet access.
+    -->
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.7" />
   </ItemGroup>
 
   <ItemGroup Label="Messaging">
