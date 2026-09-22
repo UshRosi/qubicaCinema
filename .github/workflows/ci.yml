@@ -1,0 +1,89 @@
+name: CI
+
+# Pushes to the default branch and every pull request. Not "on: [push, pull_request]": with the branch
+# workflow this repository uses, that runs the whole pipeline twice for each pull-request branch — once for
+# the push and once for the pull request — and this pipeline starts SQL Server twice per run as it is.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch supersedes the first: the older run is cancelled rather than left
+# competing for a runner with the one whose result anybody is going to read.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Nothing here publishes, comments or tags. Read access to the checkout is all the job needs.
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # global-json-file rather than a hard-coded dotnet-version: the SDK pin has one source of truth, so
+      # the runner and a developer's machine cannot drift apart.
+      - name: Set up the .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      # setup-dotnet's own "cache: true" is not usable here: it requires a packages.lock.json, and this
+      # solution uses central package management without lock files. Caching the global packages folder by
+      # the hash of the files that decide what restore resolves is the same guarantee without them.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', 'NuGet.Config', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      # The quality gate. TreatWarningsAsErrors in Directory.Build.props means a single new warning fails
+      # the run here, and ContinuousIntegrationBuild turns itself on from $(GITHUB_ACTIONS).
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      # Every test step passes one --project explicitly. A bare "dotnet test" would run all seven test
+      # projects at once, which is exactly the overlap the sequencing below exists to prevent: the
+      # Testcontainers tier and the Aspire tier cannot share a 7 GB runner.
+      - name: Unit tests
+        run: |
+          dotnet test --no-build -c Release --project tests/BuildingBlocks.UnitTests
+          dotnet test --no-build -c Release --project tests/Catalog.UnitTests
+          dotnet test --no-build -c Release --project tests/Bookings.UnitTests
+          dotnet test --no-build -c Release --project tests/Identity.UnitTests
+
+      # Still container-free — the gateway is hosted in memory and its forwarder is a recording fake — so
+      # this tier belongs with the fast ones, before anything touches Docker.
+      - name: Gateway tests
+        run: dotnet test --no-build -c Release --project tests/Gateway.IntegrationTests
+
+      # Both container tiers want exactly these two tags: the Testcontainers fixtures pin them, and they are
+      # also what Aspire's AddSqlServer/AddRabbitMQ default to, so one pull serves both. Doing it in its own
+      # step makes ~1.5 GB of download visible as pull time instead of hiding it inside a fixture's startup
+      # timeout, where a slow mirror looks like a failing test.
+      - name: Pull the container images
+        run: |
+          docker pull mcr.microsoft.com/mssql/server:2022-latest
+          docker pull rabbitmq:4.3-management
+
+      - name: Service integration tests
+        timeout-minutes: 15
+        run: dotnet test --no-build -c Release --project tests/Services.IntegrationTests
+
+      # A separate, sequential step on purpose: this tier boots the whole topology through the AppHost, and
+      # SQL Server alone asks for roughly 2 GB. Nothing here needs a secret — the AppHost's parameters are
+      # the local development values committed in src/AppHost/appsettings.json — and every endpoint in the
+      # topology is HTTP, so the runner needs no trusted development certificate either.
+      - name: End-to-end tests
+        timeout-minutes: 20
+        run: dotnet test --no-build -c Release --project tests/EndToEndTests
