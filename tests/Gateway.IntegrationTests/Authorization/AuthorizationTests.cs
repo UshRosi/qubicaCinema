@@ -1,3 +1,4 @@
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using System.Net;
 using System.Net.Http.Headers;
 using QubicaCinema.BuildingBlocks.Api.Errors;
@@ -22,7 +23,10 @@ public sealed class AuthorizationTests
     [InlineData("GET", $"/api/v1/screenings/{TestIds.Screening}/seats")]
     [InlineData("POST", "/api/v1/auth/login")]
     [InlineData("POST", "/api/v1/auth/register")]
-    public async Task Reading_the_programme_and_signing_in_need_no_token(string method, string path)
+    [InlineData("GET", $"/openapi/{CinemaApiDocuments.Catalog}.json")]
+    [InlineData("GET", $"/openapi/{CinemaApiDocuments.Bookings}.json")]
+    [InlineData("GET", $"/openapi/{CinemaApiDocuments.Identity}.json")]
+    public async Task Reading_the_programme_the_documentation_and_signing_in_need_no_token(string method, string path)
     {
         await using var factory = new GatewayFactory();
         using var client = factory.CreateClient();

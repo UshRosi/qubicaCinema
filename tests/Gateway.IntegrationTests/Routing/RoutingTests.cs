@@ -1,4 +1,5 @@
 using System.Net;
+using QubicaCinema.BuildingBlocks.Api.OpenApi;
 using QubicaCinema.BuildingBlocks.Application.Security;
 using QubicaCinema.Gateway.IntegrationTests.Fixtures;
 
@@ -26,6 +27,10 @@ public sealed class RoutingTests
     [InlineData("GET", $"/api/v1/bookings/{TestIds.Booking}", GatewayFactory.BookingHost)]
     [InlineData("POST", $"/api/v1/bookings/{TestIds.Booking}/cancellation", GatewayFactory.BookingHost)]
     [InlineData("POST", $"/api/v1/bookings/{TestIds.Booking}/items/{TestIds.BookingItem}/cancellation", GatewayFactory.BookingHost)]
+    // The three documents: each service publishes its own at the path the gateway proxies, unchanged.
+    [InlineData("GET", $"/openapi/{CinemaApiDocuments.Catalog}.json", GatewayFactory.CatalogHost)]
+    [InlineData("GET", $"/openapi/{CinemaApiDocuments.Bookings}.json", GatewayFactory.BookingHost)]
+    [InlineData("GET", $"/openapi/{CinemaApiDocuments.Identity}.json", GatewayFactory.IdentityHost)]
     public async Task A_path_reaches_the_service_that_owns_it_and_arrives_unchanged(
         string method,
         string path,
