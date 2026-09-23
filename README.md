@@ -7,23 +7,6 @@ picking them on the seat map or by asking for a number of seats and letting the 
 Built as a set of .NET microservices behind a gateway, integrated through RabbitMQ and persisted with
 EF Core on SQL Server.
 
-## Status
-
-The solution is built chapter by chapter, and each chapter ends with commits that build on their own.
-
-| Chapter | Scope | State |
-|---|---|---|
-| 0 | Bootstrap: build configuration, ServiceDefaults, AppHost, migration service, domain building blocks | done |
-| 1 | Catalog: movies, auditoriums, screenings | done |
-| 2 | Booking: seat allocation, availability, cancellation, idempotency | done |
-| 3 | Event-driven integration over RabbitMQ: Catalog outbox, Booking inbox | done |
-| 4 | YARP gateway: routing, rate limiting, one error shape | done |
-| 5 | Identity and JWT: register, log in, roles, one signing key, protected routes | done |
-| 6 | API documentation: an OpenAPI document per service, one reference page at the gateway, `.http` samples | done |
-| 7 | Tests: service integration against real SQL Server and RabbitMQ, a handful end to end through the whole topology | done |
-| 8 | Continuous integration: GitHub Actions builds the solution and runs all four test tiers on every push | done |
-| 9 | Final polish | planned |
-
 ## Prerequisites
 
 - [.NET SDK 10.0.103](https://dotnet.microsoft.com/download) or newer. The version is pinned in
@@ -47,50 +30,21 @@ The dashboard URL and its login token are printed in the console. The AppHost st
 three databases, RabbitMQ with its management UI, and runs the migration service to completion before any
 service starts.
 
-### Trying the API
+### Seeded data and credentials
 
-Everything is reached through the gateway. Aspire assigns its port on every run, so read the `gateway`
-endpoint from the dashboard and put it in a variable. The migration service seeds three auditoriums, six
-films and a week of screenings, laid out relative to today so that they are always in the future, and an
-administrator account.
+The migration service seeds three auditoriums, six films and a week of screenings, laid out relative to
+today so that they are always in the future, and an administrator account: `admin@qubicacinema.local` with
+the password `Admin!Cinema1` (local development values, set in `src/AppHost/appsettings.json`).
 
 Reading the programme and the seat map needs no token. Writing to the catalogue needs the administrator's,
-and booking needs a customer's. The seeded administrator is `admin@qubicacinema.local` with the password
-`Admin!Cinema1` (local development values, set in `src/AppHost/appsettings.json`).
-
-```bash
-GW=http://localhost:<the gateway port from the dashboard>
-
-# The administrator's token, for the writes below.
-ADMIN=$(curl -s -X POST "$GW/api/v1/auth/login" -H 'Content-Type: application/json' \
-     -d '{"email":"admin@qubicacinema.local","password":"Admin!Cinema1"}' | jq -r .accessToken)
-
-# A customer, for bookings. Registering creates a Customer; there is no way to register as an administrator.
-curl -i -X POST "$GW/api/v1/auth/register" -H 'Content-Type: application/json' \
-     -d '{"email":"ada@example.com","password":"Correct-horse-1","firstName":"Ada","lastName":"Lovelace"}'
-CUSTOMER=$(curl -s -X POST "$GW/api/v1/auth/login" -H 'Content-Type: application/json' \
-     -d '{"email":"ada@example.com","password":"Correct-horse-1"}' | jq -r .accessToken)
-
-curl "$GW/api/v1/screenings?pageSize=5"
-curl "$GW/api/v1/screenings?sort=CheapestFirst&from=2030-01-01T00:00:00Z"
-curl -i "$GW/api/v1/movies/{id}"                                    # note the ETag header
-curl -i -X PUT "$GW/api/v1/movies/{id}" -H "Authorization: Bearer $ADMIN" \
-     -H 'Content-Type: application/json' -H 'If-Match: "<etag>"' \
-     -d '{"title":"…","description":"…","durationMinutes":120,"genre":"Drama","ageRating":"Teen"}'
-curl -i -X POST "$GW/api/v1/screenings/{id}/cancellation" -H "Authorization: Bearer $ADMIN" \
-     -H 'Content-Type: application/json' -d '{"reason":"projector failure"}'
-
-# The seat map is Booking's, the rest of /screenings is Catalog's; the client cannot tell.
-curl -i "$GW/api/v1/screenings/{id}/seats"                          # Cache-Control: no-store
-curl -i -X POST "$GW/api/v1/bookings" -H "Authorization: Bearer $CUSTOMER" \
-     -H 'Content-Type: application/json' -H "Idempotency-Key: $(uuidgen)" \
-     -d '{"items":[{"screeningId":"{id}","selection":{"mode":"quantity","quantity":2}}]}'
-```
+and booking needs a customer's. Customers register themselves through `POST /api/v1/auth/register`; there is
+no way to register as an administrator.
 
 ### API reference
 
-Start the AppHost and open `/docs` on the gateway (the port is the `gateway` endpoint in the dashboard). One
-page lists every endpoint of the three services, with a selector between them. To use it without `curl`:
+Everything is reached through the gateway. Start the AppHost and open `/docs` on the gateway (Aspire assigns
+its port on every run: it is the `gateway` endpoint in the dashboard). One page lists every endpoint of the
+three services, with a selector between them. To use it:
 
 1. Open **Identity** in the selector, run `POST /api/v1/auth/login` with the seeded administrator or a customer
    you registered, and copy the `accessToken`.
@@ -114,7 +68,7 @@ response. Put the gateway's port in the `@gateway` variable at the top.
 **A known Scalar bug affects the two `If-Match` operations from the page itself** (`PUT /movies/{id}` and
 `PUT /screenings/{id}`): the `If-Match` row can show a value and still not send it, because the row's own
 checkbox stays unticked even though it looks filled ([scalar/scalar#4307](https://github.com/scalar/scalar/issues/4307),
-[scalar/scalar#10255](https://github.com/scalar/scalar/pull/10255), merged the day this chapter was written). The
+[scalar/scalar#10255](https://github.com/scalar/scalar/pull/10255), merged on 2026-09-21). The
 symptom is the client-side "Path parameters must have values" message before anything is sent. Workaround: after
 pasting the ETag, untick and retick the header's checkbox. The `.http` files above are not affected and are the
 more reliable way to try these two calls.
