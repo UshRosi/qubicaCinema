@@ -1,5 +1,7 @@
 # QubicaCinema
 
+[![CI](https://github.com/UshRosi/qubicaCinema/actions/workflows/ci.yml/badge.svg)](https://github.com/UshRosi/qubicaCinema/actions/workflows/ci.yml)
+
 A cinema seat-booking backend: browse screenings, check seat availability and book seats — either by
 picking them on the seat map or by asking for a number of seats and letting the system allocate them.
 Built as a set of .NET microservices behind a gateway, integrated through RabbitMQ and persisted with
@@ -19,7 +21,8 @@ The solution is built chapter by chapter, and each chapter ends with commits tha
 | 5 | Identity and JWT: register, log in, roles, one signing key, protected routes | done |
 | 6 | API documentation: an OpenAPI document per service, one reference page at the gateway, `.http` samples | done |
 | 7 | Tests: service integration against real SQL Server and RabbitMQ, a handful end to end through the whole topology | done |
-| 8–9 | CI, final polish | planned |
+| 8 | Continuous integration: GitHub Actions builds the solution and runs all four test tiers on every push | done |
+| 9 | Final polish | planned |
 
 ## Prerequisites
 
