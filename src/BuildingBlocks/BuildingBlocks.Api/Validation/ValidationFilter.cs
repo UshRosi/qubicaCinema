@@ -1,6 +1,7 @@
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Metadata;
 using QubicaCinema.BuildingBlocks.Api.Errors;
 
 namespace QubicaCinema.BuildingBlocks.Api.Validation;
@@ -17,6 +18,10 @@ namespace QubicaCinema.BuildingBlocks.Api.Validation;
 /// 400 is reserved for what never became a request at all — malformed JSON, a discriminator in the wrong
 /// place. The litmus test in the API design is "could a client tell from the payload alone?".
 /// </para>
+/// <para>
+/// A body the endpoint declares optional (a nullable parameter) may be left out, and then there is nothing
+/// to validate. Any other missing argument is a wiring mistake and fails loudly.
+/// </para>
 /// </remarks>
 /// <typeparam name="TRequest">The request type to validate.</typeparam>
 public sealed class ValidationFilter<TRequest>(IValidator<TRequest> validator) : IEndpointFilter
@@ -27,6 +32,11 @@ public sealed class ValidationFilter<TRequest>(IValidator<TRequest> validator) :
     {
         if (context.Arguments.OfType<TRequest>().FirstOrDefault() is not { } request)
         {
+            if (BodyIsOptional(context.HttpContext))
+            {
+                return await next(context);
+            }
+
             // The endpoint does not take a TRequest: a wiring mistake, and one that would otherwise let
             // every request through unvalidated.
             throw new InvalidOperationException(
@@ -55,4 +65,9 @@ public sealed class ValidationFilter<TRequest>(IValidator<TRequest> validator) :
                         StringComparer.Ordinal),
             });
     }
+
+    /// <summary>Whether the endpoint declares a <typeparamref name="TRequest"/> body that a client may leave out.</summary>
+    private static bool BodyIsOptional(HttpContext httpContext) =>
+        httpContext.GetEndpoint()?.Metadata.GetMetadata<IAcceptsMetadata>() is { IsOptional: true } accepts
+        && accepts.RequestType == typeof(TRequest);
 }
