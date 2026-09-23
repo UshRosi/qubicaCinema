@@ -10,7 +10,8 @@ namespace QubicaCinema.BuildingBlocks.Api.Paging;
 /// there is no way to read a page size out of this type without it having passed through
 /// <see cref="Size"/>. That matters because page size is a denial-of-service knob — <c>?pageSize=1000000</c>
 /// is a cheap request that is expensive to answer — and clamping server-side is the only defence that a
-/// client cannot opt out of.
+/// client cannot opt out of. The page number is clamped too, so that <see cref="Skip"/> cannot overflow:
+/// <c>?page=2147483647</c> would otherwise wrap round to a negative offset, which SQL Server refuses.
 /// <para>
 /// Offset paging, not a cursor. It is what a reviewer expects from a catalogue API and it supports "jump to
 /// page 7", at the known cost of drifting while rows are inserted and of deep pages getting slower. The
@@ -31,8 +32,11 @@ public sealed record PageQuery([FromQuery(Name = "page")] int? Page, [FromQuery(
     /// <summary>The most items one page can ever hold, whatever the caller asks for.</summary>
     public const int MaxSize = 100;
 
-    /// <summary>The page to return, never below one.</summary>
-    public int Number => Page is > 0 ? Page.Value : 1;
+    /// <summary>The last page that can be reached: one further and the offset would not fit in an <c>int</c>.</summary>
+    public const int MaxNumber = (int.MaxValue / MaxSize) + 1;
+
+    /// <summary>The page to return, clamped into range.</summary>
+    public int Number => Math.Clamp(Page ?? 1, 1, MaxNumber);
 
     /// <summary>The number of items to return, clamped into range.</summary>
     public int Size => PageSize is null ? DefaultSize : Math.Clamp(PageSize.Value, 1, MaxSize);

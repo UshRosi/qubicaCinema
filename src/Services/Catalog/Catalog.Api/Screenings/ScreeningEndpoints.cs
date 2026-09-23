@@ -126,11 +126,13 @@ internal sealed class ScreeningEndpoints : IEndpointModule
 
     private static async Task<Ok<CancellationAccepted>> CancelAsync(
         Guid id,
-        CancelScreeningRequest request,
+        // Nullable so that the body is optional: its only field is, and a bare POST is how the booking
+        // cancellation is called too.
+        CancelScreeningRequest? request,
         CancelScreeningHandler handler,
         CancellationToken cancellationToken)
     {
-        await handler.HandleAsync(new CancelScreeningCommand(id, request.Reason), cancellationToken);
+        await handler.HandleAsync(new CancelScreeningCommand(id, request?.Reason), cancellationToken);
 
         return TypedResults.Ok(new CancellationAccepted(id));
     }
