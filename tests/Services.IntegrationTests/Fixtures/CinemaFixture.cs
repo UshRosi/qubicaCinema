@@ -89,6 +89,12 @@ public sealed class CinemaFixture : IAsyncLifetime
     internal Task WaitForBookingQueueIdleAsync(CancellationToken cancellationToken) =>
         _rabbit.WaitForQueueIdleAsync("booking", TimeSpan.FromSeconds(10), cancellationToken);
 
+    /// <summary>
+    /// A connection string for a database of the test's own on the shared server, for a test that needs one
+    /// no other test writes to. The database is created by whoever migrates it first.
+    /// </summary>
+    internal string ConnectionStringFor(string database) => _sql.ConnectionStringFor(database);
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
